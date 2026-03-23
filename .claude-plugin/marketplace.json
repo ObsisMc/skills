@@ -1,5 +1,5 @@
 {
-  "name": "obsismc-skills",
+  "name": "obsismc-marketplace",
   "owner": {
     "name": "ObsisMc"
   },
@@ -10,10 +10,7 @@
     {
       "name": "skills",
       "source": "./",
-      "description": "A collection of useful agent skills",
-      "skills": [
-        "./skills/git-commit"
-      ]
+      "description": "A collection of useful agent skills"
     }
   ]
 }
