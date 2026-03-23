@@ -8,9 +8,17 @@
   },
   "plugins": [
     {
-      "name": "skills",
+      "name": "test-skills",
       "source": "./",
-      "description": "A collection of useful agent skills"
+      "strict": false,
+      "description": "A collection of useful agent skills",
+      "skills": [
+        {
+          "name": "hello",
+          "description": "Greet the user with a personalized message",
+          "source": "./skills/hello"
+        }
+      ]
     }
   ]
 }
