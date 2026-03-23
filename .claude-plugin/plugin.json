@@ -1,0 +1,11 @@
+{
+  "name": "skills",
+  "description": "A collection of useful agent skills by ObsisMc",
+  "version": "1.0.0",
+  "author": {
+    "name": "ObsisMc"
+  },
+  "homepage": "https://github.com/ObsisMc/skills",
+  "repository": "https://github.com/ObsisMc/skills",
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "obsismc-skills",
+  "owner": {
+    "name": "ObsisMc"
+  },
+  "metadata": {
+    "description": "A collection of agent skills by ObsisMc, compatible with Claude Code and other Agent Skills-compatible tools."
+  },
+  "plugins": [
+    {
+      "name": "skills",
+      "source": ".",
+      "description": "A collection of useful agent skills",
+      "version": "1.0.0",
+      "author": {
+        "name": "ObsisMc"
+      },
+      "homepage": "https://github.com/ObsisMc/skills",
+      "repository": "https://github.com/ObsisMc/skills",
+      "license": "Apache-2.0"
+    }
+  ]
+}
