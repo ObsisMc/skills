@@ -24,43 +24,17 @@ Skills are then available as `/skills:<skill-name>` commands, or Claude will loa
 
 This repository follows the [Agent Skills open standard](https://agentskills.io/specification). Skills in the `skills/` directory can be used with any compatible agent tool.
 
-## Available Skills
+## Plugins
 
-| Skill | Description |
-|-------|-------------|
-| [git-commit](skills/git-commit/SKILL.md) | Write structured commit messages following Conventional Commits |
+| Plugin | Description |
+|--------|-------------|
+| `speckit` | A collection of useful agent skills |
 
-## Create Your Own Skill
+## Skills
 
-Copy the template and fill it in:
-
-```bash
-cp -r template/ skills/your-skill-name/
-```
-
-Edit `skills/your-skill-name/SKILL.md` — see [template/SKILL.md](template/SKILL.md) for the format and all available fields.
-
-Each skill directory can also include:
-
-```
-skills/your-skill-name/
-├── SKILL.md          # Required: metadata + instructions
-├── scripts/          # Optional: scripts Claude can run
-├── references/       # Optional: additional docs
-└── assets/           # Optional: templates, data files
-```
-
-## Specification
-
-Skills follow the [Agent Skills specification](https://agentskills.io/specification). Required `SKILL.md` frontmatter fields:
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Lowercase letters, numbers, hyphens; max 64 chars |
-| `description` | Yes | What the skill does and when to use it; max 1024 chars |
-| `license` | No | License identifier |
-| `compatibility` | No | Environment requirements |
-| `allowed-tools` | No | Pre-approved tools |
+| Skill | Plugin | Description |
+|-------|--------|-------------|
+| [bugfix-refine](skills/bugfix-refine/SKILL.md) | speckit | Fix bugs and refine code quality in a speckit-managed project |
 
 ## License
 

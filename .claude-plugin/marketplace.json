@@ -8,12 +8,12 @@
   },
   "plugins": [
     {
-      "name": "test-skills",
+      "name": "speckit",
       "source": "./",
       "strict": false,
       "description": "A collection of useful agent skills",
       "skills": [
-        "./skills/hello"
+        "./skills/bugfix-refine"
       ]
     }
   ]
