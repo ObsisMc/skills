@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "speckit",
+      "name": "speckit-obsismc",
       "source": "./",
       "strict": false,
       "description": "A collection of useful agent skills",
