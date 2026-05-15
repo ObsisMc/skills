@@ -99,6 +99,7 @@ This is the rough sequence an agent should follow when handed a new competition.
 5. **Replicate baseline** — `kaggle kernels pull <top-notebook> -p ./baseline/ -m`,
    change `id` and `title` in `kernel-metadata.json`, push, verify it runs. Details
    in `references/replication.md`.
+   Ensure `title` slugifies to `id` before pushing, or the save can fail with a 400.
 6. **Smoke-test validate** — Add a `SMOKE_TEST` flag to the submission notebook,
    run a tiny slice via commit mode, check format with assertions. Full code in
    `references/validation.md`.
@@ -123,6 +124,7 @@ troubleshooting reference.
 - **Run mode vs Commit mode confusion** → kernel "works" but submission.csv missing
   the hidden test predictions (see `references/kernel-workflow.md`)
 - **Pulling a kernel without `-m`** → metadata missing → push fails on dependencies
+- **Kernel title does not slugify to kernel id** → `kaggle kernels push` fails with 400. Ensure `title` resolves to the `id` slug; safest is using the exact slug as the title or a title that slugifies to it.
 - **Silent `except Exception: continue`** → submission half-empty, no diagnostics
 - **Filename column with doubled extension** (`audio.ogg.ogg`) → ID mismatch
 - **Trusting a single early score** in a code competition → see queue behavior

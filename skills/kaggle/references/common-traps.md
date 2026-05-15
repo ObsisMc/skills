@@ -95,6 +95,14 @@ kaggle kernels pull <owner>/<kernel> -p ./solution/ -m
 Without `-m`, your subsequent `kaggle kernels push` will fail because Kaggle doesn't
 know to mount the original's `competition_sources`, `dataset_sources`, etc.
 
+## Kernel title does not slugify to kernel id
+
+If the kernel `title` does not resolve to the same slug as the `id`, `kaggle kernels push`
+can fail with a 400 error when saving.
+
+**Fix**: set `title` to the exact slug (or a title that slugifies to it). This is the
+safest way to ensure the `id` and `title` agree.
+
 ## Hardcoding `/kaggle/input/<comp>/` paths
 
 The path structure varies. Some competitions mount at `/kaggle/input/<slug>/`,
