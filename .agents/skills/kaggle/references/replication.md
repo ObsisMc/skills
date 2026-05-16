@@ -48,6 +48,88 @@ kaggle kernels status <your-username>/<your-new-slug>
    to tell whether a failure is from your edit or from the replication itself. Always
    push the unmodified clone first, confirm it produces a submission, then modify.
 
+## Choosing which notebook to replicate
+
+Not every high-scoring notebook is easy to replicate. Before pulling, check the
+`kernel_sources` and `dataset_sources` in `kernel-metadata.json`. They reveal the
+notebook's actual dependency chain:
+
+**Types of high-scoring notebooks (by complexity):**
+
+| Type | What it is | Replication effort |
+|------|------------|--------------------|
+| **Standalone** | Only `competition_sources`, no `kernel_sources`, minimal `dataset_sources` | Lowest — pull, rename, push |
+| **Blend/Ensemble** | Uses `dataset_sources` with pre-computed CSVs from others' models | Medium — need to replicate the source models first, or accept using their public predictions |
+| **Stacking** | Multiple `kernel_sources` pointing to other kernels' OOF artifacts | High — chain of dependencies, each must run first |
+
+**How to quickly assess before pulling:**
+
+```bash
+# 1. Pull metadata only to inspect, then decide
+kaggle kernels pull <owner>/<kernel> -p /tmp/inspect/ -m
+cat /tmp/inspect/kernel-metadata.json | python3 -c "
+import json,sys; m=json.load(sys.stdin)
+print('dataset_sources:', m.get('dataset_sources'))
+print('kernel_sources:', m.get('kernel_sources'))
+"
+```
+
+**Blender notebooks**: A notebook titled "Blender" or "Ensemble" with a `dataset_sources`
+entry like `<owner>/submission-files` is NOT training a model — it's averaging
+pre-computed CSVs. To replicate it you'd need the source submissions, which are often
+private or belong to other competitors. Choose a standalone notebook instead unless
+you explicitly want to blend.
+
+**Practical rule**: For a quick baseline, prefer notebooks where `kernel_sources` is
+empty and `dataset_sources` contains only public external data (e.g. historical
+datasets from `aadigupta1601/...`), not submission CSVs from other competitors.
+
+## Polling for completion with Monitor
+
+For GPU notebooks that take 30+ minutes, use a Monitor with a long poll interval
+rather than sleeping inline. The correct pattern:
+
+```bash
+# Start a Monitor — get notified when done, don't poll manually
+while true; do
+  status=$(kaggle kernels status <user>/<kernel> 2>&1)
+  echo "$(date '+%H:%M') $status"
+  echo "$status" | grep -qE "COMPLETE|ERROR|canceledRunning|error|failed|cancelled" && break
+  sleep 1800  # 30-minute intervals for long GPU jobs
+done
+```
+
+Typical runtimes by notebook type:
+- CPU-only tabular (LightGBM, CatBoost): 15–30 min
+- GPU tabular (CatBoost GPU, XGBoost GPU): 20–45 min  
+- GPU deep learning (NN, RealMLP): 45–90 min
+- Multi-model ensemble/stacking: 60–120 min
+
+## Submitting after the kernel completes
+
+For **CSV competitions** (most tabular competitions), the kernel produces
+`submission.csv` in its output. Download it and submit directly — do **not** use
+the `-k -v` kernel-link form, which is for code competitions:
+
+```bash
+# Download kernel output files
+kaggle kernels output <user>/<kernel> -p ./output/
+
+# Verify the submission file
+head -3 ./output/submission.csv
+wc -l ./output/submission.csv
+
+# Submit the CSV directly
+kaggle competitions submit <comp> -f ./output/submission.csv -m "description"
+
+# Check score
+kaggle competitions submissions <comp> | head -5
+```
+
+If `kaggle competitions submit ... -k <kernel> -v <version>` returns a 400 error
+but the competition is a CSV competition (not a code competition), switch to the
+`-f <file>` form instead.
+
 ## When to delegate replication
 
 If you're doing more than a trivial fork (combining notebooks, refactoring,

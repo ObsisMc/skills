@@ -121,3 +121,37 @@ Then derive paths from what's actually there.
 Many competitions are offline-only — `enable_internet: true` will disqualify your
 submission. When forking a kernel, preserve whatever `enable_internet` value the
 original had unless you've explicitly verified the competition allows internet.
+
+## Mistaking a blender notebook for a standalone model
+
+High-scoring notebooks near the top of the leaderboard are often **blenders** — they
+average pre-computed submission CSVs from other notebooks rather than training any
+model. They look standalone but have hidden dependencies.
+
+Signs a notebook is a blender:
+- Title contains "Blend", "Blender", "Ensemble", or "Stacking"
+- `dataset_sources` contains entries like `<owner>/submissions`, `<owner>/submission-files`,
+  or `<owner>/<anything>-blend-inputs`
+- The notebook code is mostly `shutil.copy(...)` or `pd.read_csv(path)[col].mean()`
+- The kernel runs in under 2 minutes despite claiming a high score
+
+**Fix**: before choosing a notebook to replicate, inspect its `kernel-metadata.json`
+(pull with `-m` or just read from the Kaggle UI). If `kernel_sources` is non-empty or
+`dataset_sources` contains submission files from other competitors, look for a more
+independent alternative. Filter for notebooks where `kernel_sources` is empty and
+`dataset_sources` only contains public external datasets.
+
+## `id_no` field in kernel-metadata.json
+
+When pulling a notebook with `kaggle kernels pull -m`, the metadata includes an
+`id_no` field (numeric internal ID of the original notebook). When you push under your
+own account, Kaggle ignores this field but it doesn't cause errors. You can safely
+leave it in the JSON — no need to remove it.
+
+## Kernel visible via URL but not in "Your Work" → Code
+
+Notebooks pushed via `kaggle kernels push` sometimes take a few minutes to appear in
+the Kaggle web UI under "Your Work → Code". The notebook is live and runnable
+immediately; the UI index just lags. Access it directly via
+`https://www.kaggle.com/code/<username>/<kernel-slug>` while waiting for the index to
+update.

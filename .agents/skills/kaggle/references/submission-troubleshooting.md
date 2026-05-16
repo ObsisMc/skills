@@ -87,3 +87,25 @@ Quick way to confirm: scan the top 2-3 public notebooks.
 
 Check the competition's "Submission" page for the exact format. When in doubt, use
 the form most public notebooks use — top notebook authors have already debugged this.
+
+## `kaggle competitions submit -k` 400 error on CSV competitions
+
+The `-k <kernel> -v <version>` form is for **code competitions** where Kaggle re-runs
+your kernel against the hidden test set. On a regular CSV competition it returns
+`400 Bad Request`.
+
+**Fix**: use `-f <file>` instead:
+
+```bash
+# Wrong for CSV competitions
+kaggle competitions submit <comp> -k <user>/<kernel> -v 1 -m "msg"
+
+# Correct for CSV competitions
+kaggle kernels output <user>/<kernel> -p ./output/
+kaggle competitions submit <comp> -f ./output/submission.csv -m "msg"
+```
+
+How to tell which form to use:
+- If the competition page has a "Code Competition" badge → use `-k -v`
+- If top public notebooks just write `submission.csv` and don't do anything special
+  for hidden test inference → it's a CSV competition, use `-f`

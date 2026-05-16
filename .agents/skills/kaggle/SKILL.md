@@ -102,12 +102,25 @@ This is the rough sequence an agent should follow when handed a new competition.
    change `id` and `title` in `kernel-metadata.json`, push, verify it runs. Details
    in `references/replication.md`.
    Ensure `title` slugifies to `id` before pushing, or the save can fail with a 400.
-6. **Smoke-test validate** — Add a `SMOKE_TEST` flag to the submission notebook,
+   **Before picking which notebook to replicate**, check `kernel_sources` and
+   `dataset_sources` — blender notebooks with submission-CSV dependencies look
+   standalone but require other competitors' outputs. Prefer notebooks where
+   `kernel_sources` is empty and `dataset_sources` has only public external data.
+6. **Poll for completion with Monitor** — GPU notebooks take 30–90 min. Use a Monitor
+   with `sleep 1800` (30 min interval) rather than short polling. Terminal states to
+   watch: `COMPLETE`, `ERROR`, `canceledRunning`, `failed`, `cancelled`.
+7. **Smoke-test validate** — Add a `SMOKE_TEST` flag to the submission notebook,
    run a tiny slice via commit mode, check format with assertions. Full code in
    `references/validation.md`.
-7. **Submit** — `kaggle competitions submit -k <kernel> -v <version>`. Use the `-k -v`
-   form for code competitions to avoid orphan submissions.
-8. **Iterate** — Improve based on score. For score interpretation see
+8. **Submit** — For CSV competitions, download kernel output with
+   `kaggle kernels output <kernel> -p ./output/` and submit with
+   `-f ./output/submission.csv`. The `-k -v` form is only for code competitions
+   (where Kaggle re-runs your kernel against a hidden test set) — using it on a
+   CSV competition returns 400.
+9. **Verify score** — `kaggle competitions submissions <comp>` shows status and
+   `publicScore` once grading is `COMPLETE`. Use a Monitor loop to detect when
+   `PENDING` clears.
+10. **Iterate** — Improve based on score. For score interpretation see
    `references/code-competition-queue.md`.
 
 ---
@@ -132,6 +145,10 @@ troubleshooting reference.
 - **Silent `except Exception: continue`** → submission half-empty, no diagnostics
 - **Filename column with doubled extension** (`audio.ogg.ogg`) → ID mismatch
 - **Trusting a single early score** in a code competition → see queue behavior
+- **Choosing a blender as the "top notebook"** → looks standalone but depends on other competitors' pre-computed CSVs; fails or produces no predictions without those inputs. Check `kernel_sources` and `dataset_sources` before choosing. See `references/replication.md`.
+- **Using `-k -v` submit form on a CSV competition** → 400 error. Only code competitions (hidden test set re-run by Kaggle) use `-k -v`. CSV competitions use `-f submission.csv`. See `references/submission-troubleshooting.md`.
+- **Polling kernel status with short sleep intervals** → wastes API calls and generates noise. GPU notebooks take 30–90 min; use Monitor with 30-min intervals and watch for terminal states (`COMPLETE`, `ERROR`, `cancelled`).
+- **Kernel not appearing in "Your Work → Code"** → normal; the UI index lags a few minutes after push. Access directly via URL `https://www.kaggle.com/code/<username>/<kernel-slug>`.
 
 ---
 
