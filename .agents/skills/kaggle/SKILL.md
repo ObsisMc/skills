@@ -96,6 +96,8 @@ This is the rough sequence an agent should follow when handed a new competition.
    2-3 top public notebooks to replicate or learn from.
 4. **EDA on Kaggle** — Create a dedicated EDA kernel. Don't download data locally.
    Checklist in `references/eda-checklist.md`.
+   If a notebook fails to run with papermill “No kernel name found”, fix the notebook
+   metadata locally by adding `metadata.kernelspec` before pushing again (see snippet below).
 5. **Replicate baseline** — `kaggle kernels pull <top-notebook> -p ./baseline/ -m`,
    change `id` and `title` in `kernel-metadata.json`, push, verify it runs. Details
    in `references/replication.md`.
@@ -125,6 +127,8 @@ troubleshooting reference.
   the hidden test predictions (see `references/kernel-workflow.md`)
 - **Pulling a kernel without `-m`** → metadata missing → push fails on dependencies
 - **Kernel title does not slugify to kernel id** → `kaggle kernels push` fails with 400. Ensure `title` resolves to the `id` slug; safest is using the exact slug as the title or a title that slugifies to it.
+- **Assuming a single input mount path** → some competitions mount under `/kaggle/input/competitions/<slug>/` instead of `/kaggle/input/<slug>/`. Always probe both before reading files.
+- **Notebook missing `kernelspec` metadata** → Kaggle papermill fails with `ValueError: No kernel name found`. Ensure generated notebooks include `metadata.kernelspec` (name: `python3`, display_name: `Python 3`, language: `python`) before pushing.
 - **Silent `except Exception: continue`** → submission half-empty, no diagnostics
 - **Filename column with doubled extension** (`audio.ogg.ogg`) → ID mismatch
 - **Trusting a single early score** in a code competition → see queue behavior

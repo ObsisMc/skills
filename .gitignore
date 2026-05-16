@@ -161,7 +161,7 @@ hf_data_cache/
 *.ckpt.data-*
 
 # LangChain, Agents, Claude related
-.agents/
+
 .claude/
 ai_logs/
 

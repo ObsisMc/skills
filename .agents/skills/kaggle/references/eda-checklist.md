@@ -22,6 +22,38 @@ Use a minimal `kernel-metadata.json`:
 }
 ```
 
+Ensure the notebook itself contains `metadata.kernelspec` so Kaggle can resolve the
+kernel when executing via papermill:
+
+```json
+{
+    "metadata": {
+        "kernelspec": {
+            "name": "python3",
+            "display_name": "Python 3",
+            "language": "python"
+        }
+    }
+}
+```
+
+If you already created a notebook without `kernelspec`, enforce it locally with:
+
+```python
+import nbformat
+
+path = r"path\to\ipynb"
+nb = nbformat.read(path, as_version=4)
+
+nb["metadata"]["kernelspec"] = {
+        "name": "python3",
+        "display_name": "Python 3",
+        "language": "python",
+}
+
+nbformat.write(nb, path)
+```
+
 **`enable_gpu: false`** is important. EDA is CPU work and GPU kernels eat quota fast.
 
 ## Persist insights as artifacts
@@ -45,7 +77,12 @@ This file defines what your final submission must look like — exact column nam
 dtypes, ID format, row count. Inspect first and plan around it.
 
 ```python
-sample = pd.read_csv(f"/kaggle/input/{COMP}/sample_submission.csv")
+base_dirs = [f"/kaggle/input/competitions/{COMP}", f"/kaggle/input/{COMP}"]
+data_dir = next((p for p in base_dirs if os.path.isdir(p)), None)
+if data_dir is None:
+    raise FileNotFoundError(f"Competition data dir not found for {COMP}")
+
+sample = pd.read_csv(f"{data_dir}/sample_submission.csv")
 print(sample.shape)
 print(sample.columns.tolist())
 print(sample.dtypes)
@@ -133,3 +170,11 @@ for f in os.listdir(f"/kaggle/input/{COMP}"):
 The goal is **not** beautiful charts — it's to surface the two or three things about
 this specific competition that you'll keep referring back to. Write those into the
 SPEC.md.
+
+## After pushing a kernel
+
+1. **Wait for completion** — after `kaggle kernels push`, wait for the run to finish.
+2. **Check logs** — if the log shows an error, analyze it, fix the notebook, and push
+    again.
+3. **Download outputs** — if there is no error, download artifacts from the Output
+    tab (or via `kaggle kernels output`).
