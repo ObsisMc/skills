@@ -3,22 +3,45 @@
 The fastest way to get a strong baseline is to clone a high-scoring public notebook,
 verify it runs end-to-end on your account, then improve from there.
 
+## Local directory convention
+
+All competition work lives under `~/.kaggle_agent/`:
+
+```
+~/.kaggle_agent/
+└── <competition-slug>/
+    └── <notebook-slug>/          # one directory per distinct notebook
+        ├── kernel-metadata.json
+        ├── <notebook>.ipynb
+        └── output/               # kaggle kernels output downloads go here
+```
+
+- **Different notebooks** for the same competition → separate `<notebook-slug>/` directories
+- **Version updates** (re-push of the same notebook) → same directory, no new folder needed; the kernel id in metadata.json stays the same, only the version number increments on Kaggle's side
+
 ## Workflow
 
 ```bash
 # 1. Pull WITH metadata — the -m flag carries dependency declarations
-kaggle kernels pull <owner>/<kernel-slug> -p ./solution/ -m
+COMP="<competition-slug>"
+NOTEBOOK="<notebook-slug>"
+TARGET=~/.kaggle_agent/$COMP/$NOTEBOOK
+mkdir -p $TARGET
+kaggle kernels pull <owner>/<kernel-slug> -p $TARGET -m
 
-# 2. Edit ./solution/kernel-metadata.json:
+# 2. Edit $TARGET/kernel-metadata.json:
 #    - Change "id" to <your-username>/<your-new-slug>
 #    - Change "title" if you want
 #    - DO NOT touch competition_sources / dataset_sources / kernel_sources
 
 # 3. Push under your account
-kaggle kernels push -p ./solution/
+kaggle kernels push -p $TARGET
 
 # 4. Monitor until it completes
 kaggle kernels status <your-username>/<your-new-slug>
+
+# 5. Download output into the same directory
+kaggle kernels output <your-username>/<your-new-slug> -p $TARGET/output/
 ```
 
 ## What to change vs preserve

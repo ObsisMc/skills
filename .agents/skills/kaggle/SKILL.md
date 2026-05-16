@@ -86,7 +86,11 @@ otherwise.
 
 This is the rough sequence an agent should follow when handed a new competition.
 
-1. **Setup check** — Run `kaggle competitions list` to verify the CLI is authenticated.
+1. **Load competition memory** — Read `~/.kaggle_agent/<comp>/NOTES.md` if it exists.
+   It contains rules, past pitfalls, current best score, and domain knowledge from
+   previous sessions. If it doesn't exist yet, create it now (template in
+   `references/competition-memory.md`) and fill in the Rules section before proceeding.
+2. **Setup check** — Run `kaggle competitions list` to verify the CLI is authenticated.
    **If it fails**, do not attempt to fix it. Stop and tell the user to run
    `kaggle auth login` themselves, then wait for confirmation. See `references/setup.md`.
 2. **Inspect** — Run `kaggle competitions files <comp-slug>` and skim the competition
@@ -120,8 +124,10 @@ This is the rough sequence an agent should follow when handed a new competition.
 9. **Verify score** — `kaggle competitions submissions <comp>` shows status and
    `publicScore` once grading is `COMPLETE`. Use a Monitor loop to detect when
    `PENDING` clears.
-10. **Iterate** — Improve based on score. For score interpretation see
-   `references/code-competition-queue.md`.
+10. **Update memory** — After each submission, append to `experiments/log.md` and
+    update `NOTES.md` (new pitfalls, domain insights, current best score, next ideas).
+11. **Iterate** — Improve based on score. For score interpretation see
+    `references/code-competition-queue.md`.
 
 ---
 
@@ -176,13 +182,14 @@ anchors so they can be sliced if needed.
 | File | When to read |
 |------|--------------|
 | `references/setup.md` | First-time `kaggle` CLI setup; data access patterns |
-| `references/kernel-workflow.md` | Pushing kernels, Run vs Commit, metadata, `/kaggle/input/` paths |
+| `references/kernel-workflow.md` | Pushing kernels, Run vs Commit, metadata, `/kaggle/input/` paths; **polling for kernel/submission completion**; **CSV vs code competition type判断** |
 | `references/replication.md` | Cloning a public top notebook into your own kernel |
 | `references/eda-checklist.md` | Exploring a new competition's data |
 | `references/validation.md` | Smoke-test commit pattern + full assertion code |
 | `references/submission-troubleshooting.md` | 400 errors, Scoring Errors, format issues |
 | `references/code-competition-queue.md` | Score delays, queue behavior, the 4-hour heuristic |
 | `references/spec-template.md` | The SPEC.md planning template |
+| `references/competition-memory.md` | Per-competition memory structure (NOTES.md + experiments/log.md) |
 | `references/common-traps.md` | Recurring code-level bugs (silent except, double extensions, etc.) |
 
 ---
