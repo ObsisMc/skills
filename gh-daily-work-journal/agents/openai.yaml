@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub 每日工作日记"
+  short_description: "汇总全部 GitHub 提交、Issue、PR、Review 与回复活动"
+  default_prompt: "使用 $gh-daily-work-journal 汇总我今天全部 GitHub 活动，并按工作主题整理困难和收获。"
