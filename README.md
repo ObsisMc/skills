@@ -2,25 +2,15 @@
 
 A collection of [Agent Skills](https://agentskills.io) for Claude Code and other compatible AI tools.
 
+**English | [简体中文](docs/README.zh-CN.md)**
+
 ## Install
 
-### Claude Code
+Install skills from this repo with [`skills`](https://www.npmjs.com/package/skills):
 
-Add this marketplace:
-
+```bash
+npx skills@latest add ObsisMc/skills
 ```
-/plugin marketplace add ObsisMc/skills
-```
-
-Then install the skills plugin:
-
-```
-/plugin install skills@obsismc-skills
-```
-
-Skills are then available as `/skills:<skill-name>` commands, or Claude will load them automatically when relevant.
-
-### Other compatible tools
 
 This repository follows the [Agent Skills open standard](https://agentskills.io/specification). Skills in the `skills/` directory can be used with any compatible agent tool.
 
@@ -35,6 +25,12 @@ This repository follows the [Agent Skills open standard](https://agentskills.io/
 | Skill | Plugin | Description |
 |-------|--------|-------------|
 | [bugfix-refine](skills/bugfix-refine/SKILL.md) | speckit | Fix bugs and refine code quality in a speckit-managed project |
+| [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Generate a Chinese work diary from a GitHub user's complete recent activity via the `gh` CLI |
+| [uml-code-atlas](skills/uml-code-atlas/SKILL.md) | - | Produce a Mermaid UML architecture atlas (layering, data model, call chains, data flow, state machines, failure-mode analysis) for a codebase, PR, or design proposal |
+
+## Maintaining this repo
+
+When adding, modifying, or removing a skill, the corresponding entry in the Skills table above **and** in the [Chinese README](docs/README.zh-CN.md) must be added, updated, or removed in the same change. See [AGENTS.md](AGENTS.md) for the enforced rule.
 
 ## License
 
