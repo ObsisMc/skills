@@ -272,6 +272,8 @@ def collect_events(
             "WatchEvent": "starred",
             "GollumEvent": "edited_wiki",
         }.get(event_type, "performed")
+        if pull_request.get("merged"):
+            action = "merged"
         url = (
             comment.get("html_url")
             or review.get("html_url")
@@ -303,6 +305,19 @@ def collect_events(
                 "url": url,
                 "body_excerpt": excerpt(body),
                 "review_state": review.get("state"),
+                "pr_author_login": (
+                    pull_request.get("user", {}).get("login")
+                    if isinstance(pull_request.get("user"), dict)
+                    else None
+                ),
+                "pr_merged": bool(pull_request.get("merged")),
+                "pr_merged_at": pull_request.get("merged_at"),
+                "pr_merged_by_login": (
+                    pull_request.get("merged_by", {}).get("login")
+                    if isinstance(pull_request.get("merged_by"), dict)
+                    else None
+                ),
+                "merge_commit_sha": pull_request.get("merge_commit_sha"),
                 "ref": payload.get("ref"),
                 "ref_type": payload.get("ref_type"),
                 "push_before": payload.get("before"),
@@ -390,6 +405,120 @@ def search_created_items(
         }
         for item in items
     ]
+
+
+def search_merged_pull_requests(
+    user: str,
+    journal_date: str,
+    timezone: dt.tzinfo,
+    repositories: list[str],
+    owners: list[str],
+    limit: int,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Find PRs authored by the user that were merged on the requested local date."""
+    target_date = dt.date.fromisoformat(journal_date)
+    search_dates = [
+        (target_date + dt.timedelta(days=offset)).isoformat() for offset in (-1, 0, 1)
+    ]
+    candidates: dict[tuple[str, int], dict[str, Any]] = {}
+
+    for search_date in search_dates:
+        args = [
+            "search",
+            "prs",
+            "--author",
+            user,
+            "--merged-at",
+            search_date,
+            "--limit",
+            str(limit),
+            "--sort",
+            "updated",
+            "--order",
+            "asc",
+            "--json",
+            "author,body,closedAt,commentsCount,createdAt,number,repository,state,title,updatedAt,url",
+        ]
+        for repo in repositories:
+            args.extend(["--repo", repo])
+        for owner in owners:
+            args.extend(["--owner", owner])
+        process = run_gh(args)
+        for item in parse_json_list(process, "`gh search prs --merged-at`"):
+            repository = normalize_repository(item.get("repository"))
+            number = item.get("number")
+            if repository and isinstance(number, int):
+                candidates[(repository, number)] = item
+
+    results: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    for (repository, number), item in candidates.items():
+        detail_process = run_gh(
+            [
+                "pr",
+                "view",
+                str(number),
+                "--repo",
+                repository,
+                "--json",
+                "author,mergedAt,mergedBy,mergeCommit,state,title,url",
+            ],
+            allow_failure=True,
+        )
+        if detail_process.returncode:
+            detail = detail_process.stderr.strip() or detail_process.stdout.strip()
+            warnings.append(
+                f"{repository}#{number}: could not verify merge metadata"
+                + (f" ({detail})" if detail else "")
+                + "."
+            )
+            continue
+        try:
+            metadata = json.loads(detail_process.stdout or "{}")
+        except json.JSONDecodeError as exc:
+            warnings.append(f"{repository}#{number}: invalid PR merge metadata ({exc}).")
+            continue
+        if not isinstance(metadata, dict):
+            warnings.append(f"{repository}#{number}: unexpected PR merge metadata.")
+            continue
+
+        merged_at = str(metadata.get("mergedAt") or "")
+        if event_local_date(merged_at, timezone) != journal_date:
+            continue
+        author = metadata.get("author") if isinstance(metadata.get("author"), dict) else {}
+        merged_by = (
+            metadata.get("mergedBy") if isinstance(metadata.get("mergedBy"), dict) else {}
+        )
+        merge_commit = (
+            metadata.get("mergeCommit")
+            if isinstance(metadata.get("mergeCommit"), dict)
+            else {}
+        )
+        author_login = str(author.get("login") or "")
+        merged_by_login = str(merged_by.get("login") or "")
+        results.append(
+            {
+                "kind": "pull_request",
+                "repository": repository,
+                "number": number,
+                "title": metadata.get("title") or item.get("title"),
+                "body_excerpt": excerpt(item.get("body")),
+                "url": metadata.get("url") or item.get("url"),
+                "state": metadata.get("state") or item.get("state"),
+                "comments_count": item.get("commentsCount"),
+                "created_at": item.get("createdAt"),
+                "updated_at": item.get("updatedAt"),
+                "merged_at": merged_at,
+                "merged_local_date": journal_date,
+                "author_login": author_login,
+                "merged_by_login": merged_by_login,
+                "authored_by_user": author_login.casefold() == user.casefold(),
+                "merged_by_user": merged_by_login.casefold() == user.casefold(),
+                "merge_commit_sha": merge_commit.get("oid"),
+            }
+        )
+
+    return sorted(results, key=lambda item: str(item.get("merged_at") or "")), warnings
 
 
 def collect_detail(repository: str, sha: str) -> tuple[dict[str, Any], str | None]:
@@ -652,6 +781,10 @@ def main() -> None:
     created_pull_requests = search_created_items(
         "pull_request", user, journal_date, args.repo, args.owner, args.limit
     )
+    merged_pull_requests, merge_warnings = search_merged_pull_requests(
+        user, journal_date, timezone, args.repo, args.owner, args.limit
+    )
+    warnings.extend(merge_warnings)
     if not event_coverage["complete_for_requested_date"]:
         warnings.append(
             "The GitHub event stream does not fully cover this date; comments, replies, "
@@ -672,12 +805,14 @@ def main() -> None:
         "activity_count": len(activities),
         "created_issue_count": len(created_issues),
         "created_pull_request_count": len(created_pull_requests),
+        "merged_pull_request_count": len(merged_pull_requests),
         "coverage_note": (
             "Commits are searched globally by author and committer. Same-day PushEvents "
             "are also expanded from their before...head ranges, so commits created earlier "
             "but pushed on the requested date remain visible with their original timestamps. "
-            "Recent non-commit work is collected from the authenticated user event stream, "
-            "and created issues/PRs are cross-checked with global search."
+            "Recent non-commit work is collected from the authenticated user event stream. "
+            "Created issues/PRs and PRs authored earlier but merged on the requested local "
+            "date are cross-checked with global search."
         ),
         "event_coverage": event_coverage,
         "warnings": warnings,
@@ -685,6 +820,7 @@ def main() -> None:
         "activities": activities,
         "created_issues": created_issues,
         "created_pull_requests": created_pull_requests,
+        "merged_pull_requests": merged_pull_requests,
     }
     rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     if args.output:
