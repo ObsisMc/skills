@@ -1,4 +1,4 @@
 interface:
   display_name: "GitHub 每日工作日记"
-  short_description: "阅读代码与完整 GitHub 活动，生成便于回忆意义的中文工作日记"
-  default_prompt: "使用 $gh-daily-work-journal 阅读相关代码与测试，以适中细节汇总我今天做了什么、学到了什么及其意义，并用自然文本链接标注外部来源。"
+  short_description: "追踪跨日交付，并总结 GitHub 工作的项目位置与价值"
+  default_prompt: "使用 $gh-daily-work-journal 追踪我今天的完整 GitHub 活动与跨日 PR 交付，结合代码和项目背景总结工作、困难、项目价值及下一步。"
