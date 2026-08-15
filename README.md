@@ -25,7 +25,7 @@ This repository follows the [Agent Skills open standard](https://agentskills.io/
 | Skill | Plugin | Description |
 |-------|--------|-------------|
 | [bugfix-refine](skills/bugfix-refine/SKILL.md) | speckit | Fix bugs and refine code quality in a speckit-managed project |
-| [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Generate a linked Chinese work diary from complete GitHub activity and inspected code, tests, and documentation, with medium-detail memory cues for outcomes, difficulties, learning, and significance |
+| [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Generate a linked Chinese work diary from complete GitHub activity, cross-day push and merge delivery, and inspected code and project context, highlighting outcomes, difficulties, project position, value, and next steps |
 | [ledger-reconcile](skills/ledger-reconcile/SKILL.md) | - | Reconcile bank/card statements with payment-facade exports (WeChat Pay, Alipay, PayPal, etc.) into a single deduplicated transaction ledger |
 | [uml-code-atlas](skills/uml-code-atlas/SKILL.md) | - | Produce a Mermaid UML architecture atlas (layering, data model, call chains, data flow, state machines, failure-mode analysis) for a codebase, PR, or design proposal |
 
