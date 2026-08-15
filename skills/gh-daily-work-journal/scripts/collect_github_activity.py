@@ -305,10 +305,13 @@ def collect_events(
                 "review_state": review.get("state"),
                 "ref": payload.get("ref"),
                 "ref_type": payload.get("ref_type"),
+                "push_before": payload.get("before"),
+                "push_head": payload.get("head"),
                 "push_size": payload.get("size"),
                 "push_commits": [
                     {
-                        "sha": str(item.get("sha") or "")[:8],
+                        "sha": str(item.get("sha") or ""),
+                        "short_sha": str(item.get("sha") or "")[:8],
                         "message": str(item.get("message") or ""),
                     }
                     for item in push_commits
@@ -405,6 +408,122 @@ def collect_detail(repository: str, sha: str) -> tuple[dict[str, Any], str | Non
     return payload, None
 
 
+def collect_pushed_commits(
+    activities: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Expand same-day PushEvents into commits while preserving push evidence."""
+    discovered: dict[tuple[str, str], dict[str, Any]] = {}
+    warnings: list[str] = []
+    zero_sha = "0" * 40
+
+    for activity in activities:
+        if activity.get("type") != "PushEvent":
+            continue
+        repository = str(activity.get("repository") or "")
+        before = str(activity.get("push_before") or "")
+        head = str(activity.get("push_head") or "")
+        if not repository or not head or head == zero_sha:
+            continue
+
+        push = {
+            "event_id": activity.get("event_id"),
+            "pushed_at": activity.get("created_at"),
+            "ref": activity.get("ref"),
+            "before": before,
+            "head": head,
+        }
+        pushed_items: list[dict[str, Any]] = []
+        range_is_complete = False
+
+        if before and before != zero_sha and before != head:
+            comparison = run_gh(
+                ["api", f"repos/{repository}/compare/{before}...{head}"],
+                allow_failure=True,
+            )
+            if comparison.returncode == 0:
+                try:
+                    comparison_payload = json.loads(comparison.stdout or "{}")
+                except json.JSONDecodeError as exc:
+                    warnings.append(
+                        f"{repository} push {head[:8]}: invalid compare JSON ({exc}); "
+                        "falling back to the pushed head commit."
+                    )
+                    comparison_payload = {}
+                if isinstance(comparison_payload, dict):
+                    raw_commits = comparison_payload.get("commits")
+                    if isinstance(raw_commits, list):
+                        pushed_items = [item for item in raw_commits if isinstance(item, dict)]
+                    total_commits = comparison_payload.get("total_commits")
+                    if isinstance(total_commits, int) and total_commits > len(pushed_items):
+                        warnings.append(
+                            f"{repository} push {head[:8]}: GitHub compare returned "
+                            f"{len(pushed_items)} of {total_commits} commits; pushed history is incomplete."
+                        )
+                    else:
+                        range_is_complete = bool(pushed_items)
+            else:
+                detail = comparison.stderr.strip() or comparison.stdout.strip()
+                warnings.append(
+                    f"{repository} push {head[:8]}: could not expand {before[:8]}...{head[:8]}"
+                    + (f" ({detail})" if detail else "")
+                    + "; falling back to the pushed head commit."
+                )
+
+        if not pushed_items:
+            head_detail, head_error = collect_detail(repository, head)
+            if head_detail:
+                pushed_items = [head_detail]
+            elif head_error:
+                warnings.append(
+                    f"{repository} push {head[:8]}: could not inspect pushed head ({head_error})."
+                )
+            if before == zero_sha:
+                warnings.append(
+                    f"{repository} push {head[:8]} created a new ref; GitHub events did not expose "
+                    "the full pushed commit list, so only the head commit could be recovered."
+                )
+            elif before == head:
+                warnings.append(
+                    f"{repository} push {head[:8]} did not expose an expandable commit range; "
+                    "only the head commit could be recovered."
+                )
+            elif before and not range_is_complete and not head_error:
+                if not any(
+                    f"{repository} push {head[:8]}:" in warning for warning in warnings
+                ):
+                    warnings.append(
+                        f"{repository} push {head[:8]} returned no compare commits; "
+                        "only the head commit could be recovered."
+                    )
+
+        for item in pushed_items:
+            sha = str(item.get("sha") or item.get("id") or "")
+            if not sha:
+                continue
+            key = (repository, sha)
+            if key not in discovered:
+                copied = dict(item)
+                copied["_repository"] = repository
+                copied["_matched_via"] = ["push"]
+                copied["_pushes"] = [push]
+                discovered[key] = copied
+            else:
+                pushes = discovered[key].setdefault("_pushes", [])
+                if push not in pushes:
+                    pushes.append(push)
+
+    return list(discovered.values()), warnings
+
+
+def evidence_timestamp(item: dict[str, Any]) -> str:
+    pushes = item.get("_pushes")
+    if isinstance(pushes, list):
+        pushed_at = [str(push.get("pushed_at") or "") for push in pushes if isinstance(push, dict)]
+        if pushed_at:
+            return max(pushed_at)
+    return commit_timestamp(item, "committer") or commit_timestamp(item, "author") or ""
+
+
 def main() -> None:
     args = parse_args()
     journal_date = validate_date(args.date)
@@ -425,6 +544,13 @@ def main() -> None:
     if not user:
         fail("could not determine the GitHub login")
 
+    activities, event_coverage = collect_events(
+        user, journal_date, timezone, args.repo, args.owner
+    )
+    warnings: list[str] = []
+    pushed_items, push_warnings = collect_pushed_commits(activities)
+    warnings.extend(push_warnings)
+
     matches: dict[tuple[str, str], dict[str, Any]] = {}
     for role in ("author", "committer"):
         for item in search_commits(user, journal_date, args.repo, args.owner, args.limit, role):
@@ -437,19 +563,31 @@ def main() -> None:
             elif role not in matches[key]["_matched_via"]:
                 matches[key]["_matched_via"].append(role)
 
+    for item in pushed_items:
+        repository = str(item.get("_repository") or normalize_repository(item.get("repository")))
+        sha = str(item.get("sha") or item.get("id") or "")
+        key = (repository, sha)
+        if key not in matches:
+            matches[key] = item
+            continue
+        matched_via = matches[key].setdefault("_matched_via", [])
+        if "push" not in matched_via:
+            matched_via.append("push")
+        existing_pushes = matches[key].setdefault("_pushes", [])
+        for push in item.get("_pushes", []):
+            if push not in existing_pushes:
+                existing_pushes.append(push)
+
     items = sorted(
         matches.values(),
-        key=lambda item: commit_timestamp(item, "committer")
-        or commit_timestamp(item, "author")
-        or "",
+        key=evidence_timestamp,
     )[: args.limit]
 
     commits: list[dict[str, Any]] = []
-    warnings: list[str] = []
     for item in items:
         if not isinstance(item, dict):
             continue
-        repository = normalize_repository(item.get("repository"))
+        repository = str(item.get("_repository") or normalize_repository(item.get("repository")))
         sha = str(item.get("sha") or item.get("id") or "")
         message = commit_message(item)
         detail, detail_error = collect_detail(repository, sha)
@@ -472,19 +610,31 @@ def main() -> None:
             )
         stats = detail.get("stats") if isinstance(detail.get("stats"), dict) else {}
         parents = item.get("parents") if isinstance(item.get("parents"), list) else detail.get("parents", [])
+        authored_at = commit_timestamp(item, "author")
+        committed_at = commit_timestamp(item, "committer")
+        authored_local_date = event_local_date(authored_at, timezone) if authored_at else ""
+        committed_local_date = event_local_date(committed_at, timezone) if committed_at else ""
+        pushes = item.get("_pushes", []) if isinstance(item.get("_pushes"), list) else []
+        original_dates = {date for date in (authored_local_date, committed_local_date) if date}
         commits.append(
             {
                 "repository": repository,
                 "sha": sha,
                 "short_sha": sha[:8],
-                "url": item.get("url") or detail.get("html_url"),
+                "url": item.get("url") or item.get("html_url") or detail.get("html_url"),
                 "title": message.splitlines()[0] if message else "",
                 "message": message,
                 "matched_via": item.get("_matched_via", []),
                 "author_login": account_login(item, "author"),
                 "committer_login": account_login(item, "committer"),
-                "authored_at": commit_timestamp(item, "author"),
-                "committed_at": commit_timestamp(item, "committer"),
+                "authored_at": authored_at,
+                "committed_at": committed_at,
+                "authored_local_date": authored_local_date,
+                "committed_local_date": committed_local_date,
+                "pushes": pushes,
+                "is_delayed_push": bool(
+                    pushes and original_dates and journal_date not in original_dates
+                ),
                 "is_merge": isinstance(parents, list) and len(parents) > 1,
                 "stats": {
                     "additions": stats.get("additions"),
@@ -496,9 +646,6 @@ def main() -> None:
             }
         )
 
-    activities, event_coverage = collect_events(
-        user, journal_date, timezone, args.repo, args.owner
-    )
     created_issues = search_created_items(
         "issue", user, journal_date, args.repo, args.owner, args.limit
     )
@@ -518,13 +665,19 @@ def main() -> None:
         "repository_filters": args.repo,
         "owner_filters": args.owner,
         "commit_count": len(commits),
+        "pushed_commit_count": sum(bool(commit.get("pushes")) for commit in commits),
+        "delayed_push_commit_count": sum(
+            bool(commit.get("is_delayed_push")) for commit in commits
+        ),
         "activity_count": len(activities),
         "created_issue_count": len(created_issues),
         "created_pull_request_count": len(created_pull_requests),
         "coverage_note": (
-            "Commits are searched globally by author and committer. Recent non-commit "
-            "work is collected from the authenticated user event stream, and created "
-            "issues/PRs are cross-checked with global search."
+            "Commits are searched globally by author and committer. Same-day PushEvents "
+            "are also expanded from their before...head ranges, so commits created earlier "
+            "but pushed on the requested date remain visible with their original timestamps. "
+            "Recent non-commit work is collected from the authenticated user event stream, "
+            "and created issues/PRs are cross-checked with global search."
         ),
         "event_coverage": event_coverage,
         "warnings": warnings,
