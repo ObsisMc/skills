@@ -24,6 +24,7 @@ This repository follows the [Agent Skills open standard](https://agentskills.io/
 
 | Skill | Plugin | Description |
 |-------|--------|-------------|
+| [bug-postmortem](skills/bug-postmortem/SKILL.md) | - | Write a code-level postmortem for a bug that escaped into production — why every safety net missed it, and what guardrail makes the same bug class fail loudly next time |
 | [bugfix-refine](skills/bugfix-refine/SKILL.md) | speckit | Fix bugs and refine code quality in a speckit-managed project |
 | [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Generate a linked Chinese work diary from complete GitHub activity, cross-day push and merge delivery, and inspected code and project context, highlighting outcomes, difficulties, project position, value, and next steps |
 | [ledger-reconcile](skills/ledger-reconcile/SKILL.md) | - | Reconcile bank/card statements with payment-facade exports (WeChat Pay, Alipay, PayPal, etc.) into a single deduplicated transaction ledger |
