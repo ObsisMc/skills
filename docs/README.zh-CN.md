@@ -30,6 +30,10 @@ npx skills@latest add ObsisMc/skills
 | [ledger-reconcile](../skills/ledger-reconcile/SKILL.md) | - | 将银行/信用卡账单与支付类 facade（微信支付、支付宝、PayPal 等）导出的流水对账合并成一份去重后的交易台账 |
 | [uml-code-atlas](../skills/uml-code-atlas/SKILL.md) | - | 为代码库、PR 或设计方案生成 Mermaid UML 架构图集（分层、数据模型、调用链、数据流、状态机、失效模式分析） |
 
+## 致谢
+
+- [bug-postmortem](../skills/bug-postmortem/SKILL.md) —— 方法论改编自 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 的事故复盘实践（`docs/postmortem/`、`docs/AGENTS.md`、`docs/testing.md`），并参考了[菜鸟教程的中文讲解](https://www.runoob.com/deepseek-harness/deeseek-harness-postmortem.html)。本技能为独立重写：已剥离该项目特有的技术栈与语言假设，内容自足。
+
 ## 维护本仓库
 
 新增、修改或删除某个技能时，必须在同一次改动中同步更新上方的"技能列表"表格（英文版 [README.md](../README.md) 与本文件均需更新）。具体规则见 [AGENTS.md](../AGENTS.md)。

@@ -30,6 +30,10 @@ This repository follows the [Agent Skills open standard](https://agentskills.io/
 | [ledger-reconcile](skills/ledger-reconcile/SKILL.md) | - | Reconcile bank/card statements with payment-facade exports (WeChat Pay, Alipay, PayPal, etc.) into a single deduplicated transaction ledger |
 | [uml-code-atlas](skills/uml-code-atlas/SKILL.md) | - | Produce a Mermaid UML architecture atlas (layering, data model, call chains, data flow, state machines, failure-mode analysis) for a codebase, PR, or design proposal |
 
+## Credits
+
+- [bug-postmortem](skills/bug-postmortem/SKILL.md) — the methodology is adapted from the postmortem practice in [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) (`docs/postmortem/`, `docs/AGENTS.md`, `docs/testing.md`), by way of [runoob's Chinese walkthrough](https://www.runoob.com/deepseek-harness/deeseek-harness-postmortem.html) of the same material. The skill is an independent rewrite: generalized away from that project's stack and language, and self-contained.
+
 ## Maintaining this repo
 
 When adding, modifying, or removing a skill, the corresponding entry in the Skills table above **and** in the [Chinese README](docs/README.zh-CN.md) must be added, updated, or removed in the same change. See [AGENTS.md](AGENTS.md) for the enforced rule.
