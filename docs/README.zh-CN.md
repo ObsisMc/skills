@@ -24,6 +24,7 @@ npx skills@latest add ObsisMc/skills
 
 | 技能 | 所属插件 | 说明 |
 |------|---------|------|
+| [bug-postmortem](../skills/bug-postmortem/SKILL.md) | - | 为逃逸到生产环境的 bug 撰写代码级复盘：重点是为什么每道安全网都没拦住，以及新增什么防护让同类问题下次明确报错 |
 | [bugfix-refine](../skills/bugfix-refine/SKILL.md) | speckit | 在 speckit 管理的项目中修复 bug 并优化代码质量 |
 | [gh-daily-work-journal](../skills/gh-daily-work-journal/SKILL.md) | - | 汇总完整 GitHub 活动与跨日推送、合入进展，并结合代码和项目背景生成带来源链接、突出成果、难点、项目位置、价值与下一步的中文工作日记 |
 | [ledger-reconcile](../skills/ledger-reconcile/SKILL.md) | - | 将银行/信用卡账单与支付类 facade（微信支付、支付宝、PayPal 等）导出的流水对账合并成一份去重后的交易台账 |
