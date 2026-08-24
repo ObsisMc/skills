@@ -162,6 +162,16 @@ Return only the diary body. When the user asks to save it, or when invoked by an
 
 Delete temporary collector JSON after use because it may contain private-repository metadata and excerpts from comments or Issue bodies.
 
+## Deliver through a pull request
+
+When the user asks for a pull request, commit the journal file on its own branch and open the PR from that branch.
+
+- Never mention an external GitHub object in the pull request title, body, or commit message. A PR number, Issue number, or object URL belonging to another repository makes GitHub write a cross-reference entry into that object's own timeline, so an unrelated project ends up displaying an inbound link from a personal diary. This is the opposite of what the journal is for.
+- Describe the same work in plain prose instead. Write “the chat agent picker now derives its list from backend runtime detection” rather than naming or linking the PR that did it. Repository names and other identifying details may stay when they do not form a reference.
+- The diary body keeps all of its links. Committed file content does not create cross-references; only titles, bodies, comments, and commit messages do. Never strip the diary's own links to satisfy this rule.
+- Treat this as a constraint on the first submission, not something to fix afterwards. GitHub writes the cross-reference the moment the body is published, and later editing the body does not remove the entry it already created.
+- Keep the pull request body to a short summary of the journal's work themes plus a test-plan line stating that the change is documentation only.
+
 ## Automation behavior
 
 When invoked as a scheduled daily task, pass the automation's local UTC offset and requested date. Generate the journal even when no activity exists, so the sequence remains continuous. Surface authentication or incomplete-coverage failures rather than emitting a misleading empty journal.
