@@ -1,5 +1,6 @@
 ---
 name: uml-code-atlas
+disable-model-invocation: true
 description: Produce a Mermaid UML architecture atlas that explains a codebase, a PR, or a design proposal — system layering, data model, core call chains, data flow, state machines, and a first-class failure-mode analysis with failure-scenario walkthroughs and acceptance criteria. Use this skill whenever someone asks for UML, architecture diagrams, sequence/class/state/ER diagrams, a call-chain or data-flow picture, "help me understand this PR/module/service", "画个图", "架构图", "时序图", "调用链", "数据流", a design review of a proposal doc, or says they want to intuitively grasp how a system works — even if they never say the word "UML". Also use it when reviewing a design document for gaps, since the atlas is how the gaps get found.
 ---
 
