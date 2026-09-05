@@ -1,5 +1,6 @@
 ---
 name: ledger-reconcile
+disable-model-invocation: true
 description: >
   Reconcile personal bank/card statements with payment-facade exports (WeChat Pay, Alipay,
   PayPal, Meituan, etc.) into a single deduplicated transaction ledger. Use when the user

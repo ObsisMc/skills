@@ -1,5 +1,6 @@
 ---
 name: gh-daily-work-journal
+disable-model-invocation: true
 description: Generate a Chinese work diary from a GitHub user's complete recent activity by using the local GitHub CLI (`gh`) and reading relevant diffs, final source context, tests, project documentation, and cross-day delivery transitions. Cover authored and committed code plus issues, pull requests created earlier but merged today, reviews, comments, replies, pushes, and other events across personal repositories, organizations, and external open-source projects. Organize the result into compact, medium-detail memory cues that distinguish accomplishments, difficulties, project position and value, learning, and next steps, with every mentioned GitHub object linked through natural descriptive text. Use when the user asks to summarize today's or specified days' GitHub work, create diary text, recall code changes and decisions, identify challenges, track cross-day PR delivery, or explain each change's role and value in the project.
 ---
 

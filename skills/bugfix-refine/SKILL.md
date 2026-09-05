@@ -1,5 +1,6 @@
 ---
 name: bugfix-refine
+disable-model-invocation: true
 description: >
   Fix bugs and refine code quality in a speckit-managed project. Use this skill when the user
   describes a bug, unexpected behavior, a performance issue, or asks for cleanup/refinement —

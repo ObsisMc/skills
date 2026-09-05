@@ -1,5 +1,6 @@
 ---
 name: bug-postmortem
+disable-model-invocation: true
 description: Write an engineering postmortem for a bug that escaped into production — real users, a merged PR, or a released version. Judge first whether the bug clears the subtle/systemic/costly-to-rediscover bar, gather evidence, then produce a fixed-section incident record whose center of gravity is why every safety net missed it, not the one-line fix, and whose guardrails are concrete enough that the same bug class fails loudly next time. Use when the user says postmortem, RCA, root cause analysis, incident report, retrospective, 复盘, 事故复盘, 根因分析, 故障报告, "why didn't our tests catch this", "这个 bug 为什么没被测出来", "write this up", "写个复盘", or has just finished debugging something painful and wants the lesson made durable. Also use when reviewing or improving an existing postmortem draft. This is a code-level postmortem about a specific defect and the tests, tooling, and conventions that failed to catch it; it does not cover team or project retrospectives, sprint reviews, or non-engineering incident reviews.
 ---
 
