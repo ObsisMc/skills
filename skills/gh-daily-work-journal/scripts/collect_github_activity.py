@@ -58,6 +58,16 @@ def parse_args() -> argparse.Namespace:
         help="Local UTC offset used to assign event dates, such as +08:00; defaults to system local time",
     )
     parser.add_argument("--limit", type=int, default=200, help="Maximum commits to collect (default: 200)")
+    parser.add_argument(
+        "--max-pull-requests",
+        type=int,
+        default=40,
+        help=(
+            "Maximum pull requests whose head branch is read for commits (default: 40). "
+            "Backfilling an old date has to consider every pull request updated since "
+            "then, so this bounds the work"
+        ),
+    )
     parser.add_argument("--output", type=Path, help="Write UTF-8 JSON to this path instead of stdout")
     return parser.parse_args()
 
@@ -407,6 +417,244 @@ def search_created_items(
     ]
 
 
+PULL_REQUEST_VIEW_FIELDS = (
+    "author,baseRefName,body,commits,createdAt,headRefName,headRepository,"
+    "headRepositoryOwner,isDraft,mergedAt,number,state,title,updatedAt,url"
+)
+
+
+def head_repository(detail: dict[str, Any], fallback: str) -> str:
+    """Repository the pull request branch lives in; for a fork this is not the base."""
+    owner = detail.get("headRepositoryOwner")
+    repo = detail.get("headRepository")
+    owner_login = str(owner.get("login") or "") if isinstance(owner, dict) else ""
+    repo_name = str(repo.get("name") or "") if isinstance(repo, dict) else ""
+    if owner_login and repo_name:
+        return f"{owner_login}/{repo_name}"
+    return normalize_repository(repo) or fallback
+
+
+def pull_request_commits_on_date(
+    detail: dict[str, Any],
+    journal_date: str,
+    timezone: dt.tzinfo,
+) -> list[dict[str, Any]]:
+    """Head-branch commits of a pull request that carry the journal date."""
+    entries: list[dict[str, Any]] = []
+    raw_commits = detail.get("commits")
+    if not isinstance(raw_commits, list):
+        return entries
+    for commit in raw_commits:
+        if not isinstance(commit, dict):
+            continue
+        sha = str(commit.get("oid") or "")
+        if not sha:
+            continue
+        authored_at = str(commit.get("authoredDate") or "")
+        committed_at = str(commit.get("committedDate") or "")
+        authored_local_date = event_local_date(authored_at, timezone) if authored_at else ""
+        committed_local_date = event_local_date(committed_at, timezone) if committed_at else ""
+        if journal_date not in {authored_local_date, committed_local_date}:
+            continue
+        logins = [
+            str(author.get("login") or "")
+            for author in commit.get("authors", [])
+            if isinstance(author, dict) and author.get("login")
+        ]
+        headline = str(commit.get("messageHeadline") or "")
+        body = str(commit.get("messageBody") or "")
+        entries.append(
+            {
+                "sha": sha,
+                "short_sha": sha[:8],
+                "title": headline,
+                "message": "\n\n".join(part for part in (headline, body) if part),
+                "authored_at": authored_at,
+                "committed_at": committed_at,
+                "authored_local_date": authored_local_date,
+                "committed_local_date": committed_local_date,
+                "author_logins": logins,
+            }
+        )
+    return entries
+
+
+def search_updated_pull_requests(
+    user: str,
+    journal_date: str,
+    timezone: dt.tzinfo,
+    repositories: list[str],
+    owners: list[str],
+    limit: int,
+    max_pull_requests: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """Pull requests the user authored and touched on the date, plus their same-day commits.
+
+    GitHub commit search only indexes a repository's default branch, so a commit that
+    lives on a feature branch is invisible to `gh search commits`. Reading the head
+    branch of every pull request touched on the journal date recovers the branch commits
+    that belong to a pull request, whether it was opened that day or days earlier.
+
+    The search asks for pull requests updated on or after the journal date rather than
+    exactly on it. `updated` holds only the most recent update, so a pull request that
+    carried commits on the journal date and was touched again later no longer matches
+    that date, and an exact-date query silently loses every past date's branch work.
+    Candidates are therefore ordered by ascending update time, so the pull requests most
+    likely to hold the date's commits are read first, and `max_pull_requests` bounds how
+    many are opened when backfilling a date far in the past.
+    """
+    args = [
+        "search",
+        "prs",
+        "--author",
+        user,
+        "--updated",
+        f">={journal_date}",
+        "--limit",
+        str(limit),
+        "--sort",
+        "updated",
+        "--order",
+        "asc",
+        "--json",
+        "closedAt,number,repository,url",
+    ]
+    for repo in repositories:
+        args.extend(["--repo", repo])
+    for owner in owners:
+        args.extend(["--owner", owner])
+    process = run_gh(args, allow_failure=True)
+    warnings: list[str] = []
+    if process.returncode:
+        detail_text = process.stderr.strip() or process.stdout.strip()
+        warnings.append(
+            "Could not search pull requests updated on the journal date"
+            + (f" ({detail_text})" if detail_text else "")
+            + "; commits that exist only on a feature branch may be missing."
+        )
+        return [], [], warnings
+
+    pull_requests: list[dict[str, Any]] = []
+    commit_items: list[dict[str, Any]] = []
+    seen: set[tuple[str, int]] = set()
+
+    candidates = parse_json_list(process, "`gh search prs --updated`")
+    if len(candidates) >= limit:
+        warnings.append(
+            f"Pull requests updated since {journal_date} filled the {limit} search limit; "
+            "raise --limit if branch commits appear to be missing."
+        )
+
+    for item in candidates:
+        if len(seen) >= max_pull_requests:
+            warnings.append(
+                f"Stopped after reading {max_pull_requests} pull requests updated since "
+                f"{journal_date}; branch commits in the remaining ones were not collected. "
+                "Raise --max-pull-requests to widen this."
+            )
+            break
+        repository = normalize_repository(item.get("repository"))
+        number = item.get("number")
+        if not repository or not isinstance(number, int) or (repository, number) in seen:
+            continue
+        seen.add((repository, number))
+        closed_at = str(item.get("closedAt") or "")
+        closed_local_date = event_local_date(closed_at, timezone) if closed_at else ""
+        if closed_local_date and "0001-01-01" not in closed_at and closed_local_date < journal_date:
+            # A pull request closed before the journal date cannot have gained commits on it.
+            continue
+        detail_process = run_gh(
+            ["pr", "view", str(number), "--repo", repository, "--json", PULL_REQUEST_VIEW_FIELDS],
+            allow_failure=True,
+        )
+        if detail_process.returncode:
+            warnings.append(
+                f"{repository}#{number}: could not read the pull request head branch; "
+                "commits that never reached the default branch may be missing."
+            )
+            continue
+        try:
+            detail = json.loads(detail_process.stdout or "{}")
+        except json.JSONDecodeError as exc:
+            warnings.append(f"{repository}#{number}: invalid pull request JSON ({exc}).")
+            continue
+        if not isinstance(detail, dict):
+            continue
+
+        commits_on_date = pull_request_commits_on_date(detail, journal_date, timezone)
+        state = str(detail.get("state") or "")
+        merged_at = str(detail.get("mergedAt") or "")
+        created_at = str(detail.get("createdAt") or "")
+        head_repo = head_repository(detail, repository)
+        head_ref = str(detail.get("headRefName") or "")
+        url = str(detail.get("url") or item.get("url") or "")
+
+        date_activity: list[str] = []
+        if commits_on_date:
+            date_activity.append("commits")
+        if created_at and event_local_date(created_at, timezone) == journal_date:
+            date_activity.append("created")
+        if merged_at and event_local_date(merged_at, timezone) == journal_date:
+            date_activity.append("merged")
+        if not date_activity:
+            date_activity.append("discussion_or_metadata")
+
+        pull_requests.append(
+            {
+                "repository": repository,
+                "number": number,
+                "title": detail.get("title"),
+                "body_excerpt": excerpt(detail.get("body")),
+                "url": url,
+                "state": state,
+                "is_draft": bool(detail.get("isDraft")),
+                "is_merged": state == "MERGED",
+                "base_ref_name": detail.get("baseRefName"),
+                "head_ref_name": head_ref,
+                "head_repository": head_repo,
+                "is_cross_repository": head_repo != repository,
+                "created_at": created_at,
+                "updated_at": detail.get("updatedAt"),
+                "merged_at": merged_at,
+                "created_on_date": "created" in date_activity,
+                "merged_on_date": "merged" in date_activity,
+                "date_activity": date_activity,
+                "commit_count_on_date": len(commits_on_date),
+                "commits_on_date": commits_on_date,
+            }
+        )
+
+        reference = {
+            "repository": repository,
+            "number": number,
+            "url": url,
+            "state": state,
+            "head_ref_name": head_ref,
+            "base_ref_name": detail.get("baseRefName"),
+            "is_merged": state == "MERGED",
+        }
+        for entry in commits_on_date:
+            sha = str(entry["sha"])
+            logins = entry.get("author_logins") or []
+            commit_items.append(
+                {
+                    "_repository": head_repo,
+                    "_matched_via": ["pull_request"],
+                    "_pull_requests": [reference],
+                    "sha": sha,
+                    "url": f"https://github.com/{head_repo}/commit/{sha}",
+                    "commit": {
+                        "message": entry.get("message") or "",
+                        "author": {"date": entry.get("authored_at") or ""},
+                        "committer": {"date": entry.get("committed_at") or ""},
+                    },
+                    "author": {"login": logins[0]} if logins else None,
+                }
+            )
+
+    return pull_requests, commit_items, warnings
+
+
 def search_merged_pull_requests(
     user: str,
     journal_date: str,
@@ -659,6 +907,8 @@ def main() -> None:
     timezone = parse_timezone(args.utc_offset)
     if args.limit < 1 or args.limit > 1000:
         fail("--limit must be between 1 and 1000")
+    if args.max_pull_requests < 0 or args.max_pull_requests > 500:
+        fail("--max-pull-requests must be between 0 and 500")
     if shutil.which("gh") is None:
         fail("GitHub CLI (`gh`) is required; install it, then run `gh auth login`")
 
@@ -707,6 +957,34 @@ def main() -> None:
             if push not in existing_pushes:
                 existing_pushes.append(push)
 
+    updated_pull_requests, pull_request_commit_items, updated_pr_warnings = (
+        search_updated_pull_requests(
+            user,
+            journal_date,
+            timezone,
+            args.repo,
+            args.owner,
+            args.limit,
+            args.max_pull_requests,
+        )
+    )
+    warnings.extend(updated_pr_warnings)
+
+    for item in pull_request_commit_items:
+        repository = str(item.get("_repository") or "")
+        sha = str(item.get("sha") or "")
+        key = (repository, sha)
+        if key not in matches:
+            matches[key] = item
+            continue
+        matched_via = matches[key].setdefault("_matched_via", [])
+        if "pull_request" not in matched_via:
+            matched_via.append("pull_request")
+        existing_references = matches[key].setdefault("_pull_requests", [])
+        for reference in item.get("_pull_requests", []):
+            if reference not in existing_references:
+                existing_references.append(reference)
+
     items = sorted(
         matches.values(),
         key=evidence_timestamp,
@@ -722,6 +1000,17 @@ def main() -> None:
         detail, detail_error = collect_detail(repository, sha)
         if detail_error:
             warnings.append(f"{repository}@{sha[:8]}: {detail_error}")
+
+        author_login = account_login(item, "author") or account_login(detail, "author")
+        committer_login = account_login(item, "committer") or account_login(detail, "committer")
+        if item.get("_matched_via") == ["pull_request"]:
+            # A pull request the user authored can still carry commits written by a
+            # collaborator or a bot. Keep a commit only when the user authored or
+            # committed it, or when neither identity resolves to any account, which
+            # normally means the commit email is simply not linked to a GitHub login.
+            resolved = {login.casefold() for login in (author_login, committer_login) if login}
+            if resolved and user.casefold() not in resolved:
+                continue
 
         files = []
         for changed in detail.get("files", []) if isinstance(detail.get("files"), list) else []:
@@ -754,13 +1043,16 @@ def main() -> None:
                 "title": message.splitlines()[0] if message else "",
                 "message": message,
                 "matched_via": item.get("_matched_via", []),
-                "author_login": account_login(item, "author"),
-                "committer_login": account_login(item, "committer"),
+                "pull_requests": item.get("_pull_requests", []),
+                "author_login": author_login,
+                "committer_login": committer_login,
                 "authored_at": authored_at,
                 "committed_at": committed_at,
                 "authored_local_date": authored_local_date,
                 "committed_local_date": committed_local_date,
                 "pushes": pushes,
+                "authored_on_date": authored_local_date == journal_date,
+                "committed_on_date": committed_local_date == journal_date,
                 "is_delayed_push": bool(
                     pushes and original_dates and journal_date not in original_dates
                 ),
@@ -806,10 +1098,19 @@ def main() -> None:
         "created_issue_count": len(created_issues),
         "created_pull_request_count": len(created_pull_requests),
         "merged_pull_request_count": len(merged_pull_requests),
+        "updated_pull_request_count": len(updated_pull_requests),
+        "pull_request_commit_count": sum(
+            "pull_request" in (commit.get("matched_via") or []) for commit in commits
+        ),
         "coverage_note": (
             "Commits are searched globally by author and committer. Same-day PushEvents "
             "are also expanded from their before...head ranges, so commits created earlier "
             "but pushed on the requested date remain visible with their original timestamps. "
+            "GitHub commit search only indexes each repository's default branch, so the "
+            "head branch of every pull request the user touched on the requested date is "
+            "read as well; those commits are marked matched_via pull_request and carry a "
+            "pull_requests back-reference. Branch work that has neither a pull request nor "
+            "a recoverable PushEvent stays invisible. "
             "Recent non-commit work is collected from the authenticated user event stream. "
             "Created issues/PRs and PRs authored earlier but merged on the requested local "
             "date are cross-checked with global search."
@@ -821,6 +1122,7 @@ def main() -> None:
         "created_issues": created_issues,
         "created_pull_requests": created_pull_requests,
         "merged_pull_requests": merged_pull_requests,
+        "updated_pull_requests": updated_pull_requests,
     }
     rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     if args.output:

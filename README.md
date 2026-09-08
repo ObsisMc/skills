@@ -28,7 +28,7 @@ For Claude Code, all skills are configured with `disable-model-invocation: true`
 |-------|--------|------------|-------------|
 | [bug-postmortem](skills/bug-postmortem/SKILL.md) | - | Explicit only | Write a code-level postmortem for a bug that escaped into production — why every safety net missed it, and what guardrail makes the same bug class fail loudly next time |
 | [bugfix-refine](skills/bugfix-refine/SKILL.md) | speckit | Explicit only | Fix bugs and refine code quality in a speckit-managed project |
-| [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Explicit only | Generate a linked Chinese work diary from complete GitHub activity, cross-day push and merge delivery, and inspected code and project context, grouped by project under headings and highlighting outcomes, difficulties, project position, value, and next steps |
+| [gh-daily-work-journal](skills/gh-daily-work-journal/SKILL.md) | - | Explicit only | Generate a linked Chinese work diary from complete GitHub activity, including feature-branch commits GitHub's default-branch-only commit search misses, cross-day push and merge delivery, and inspected code and project context, grouped by project under headings and highlighting outcomes, difficulties, project position, value, and next steps |
 | [ledger-reconcile](skills/ledger-reconcile/SKILL.md) | - | Explicit only | Reconcile bank/card statements with payment-facade exports (WeChat Pay, Alipay, PayPal, etc.) into a single deduplicated transaction ledger |
 | [uml-code-atlas](skills/uml-code-atlas/SKILL.md) | - | Explicit only | Produce a Mermaid UML architecture atlas (layering, data model, call chains, data flow, state machines, failure-mode analysis) for a codebase, PR, or design proposal |
 
