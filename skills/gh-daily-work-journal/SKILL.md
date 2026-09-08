@@ -1,7 +1,7 @@
 ---
 name: gh-daily-work-journal
 disable-model-invocation: true
-description: Generate a Chinese work diary from a GitHub user's complete recent activity by using the local GitHub CLI (`gh`) and reading relevant diffs, final source context, tests, project documentation, and cross-day delivery transitions. Cover authored and committed code plus issues, pull requests created earlier but merged today, reviews, comments, replies, pushes, and other events across personal repositories, organizations, and external open-source projects. Organize the result into compact, medium-detail memory cues that distinguish accomplishments, difficulties, project position and value, learning, and next steps, with every mentioned GitHub object linked through natural descriptive text. Use when the user asks to summarize today's or specified days' GitHub work, create diary text, recall code changes and decisions, identify challenges, track cross-day PR delivery, or explain each change's role and value in the project.
+description: Generate a Chinese work diary from a GitHub user's complete recent activity by using the local GitHub CLI (`gh`) and reading relevant diffs, final source context, tests, project documentation, and cross-day delivery transitions. Cover authored and committed code plus issues, pull requests created earlier but merged today, reviews, comments, replies, pushes, and other events across personal repositories, organizations, and external open-source projects. Organize the result into compact, medium-detail memory cues that distinguish accomplishments, difficulties, project position and value, learning, and next steps, with every mentioned GitHub object linked through natural descriptive text. Group the themes by project under second-level headings so one project's work stays contiguous instead of interleaving with another, keep related projects adjacent, and nest a contained sub-project under its host project as a third-level heading. Use when the user asks to summarize today's or specified days' GitHub work, create diary text, recall code changes and decisions, identify challenges, track cross-day PR delivery, or explain each change's role and value in the project.
 ---
 
 # GitHub Daily Work Journal
@@ -82,12 +82,39 @@ Before writing the first substantive theme for a repository, inspect enough proj
 
 Group related commits, issues, PRs, reviews, and comments into work themes. Prefer shared repository, issue/PR number, feature or fix intent, and conversation context as grouping signals. Collapse mechanical pushes, PR open/merge pairs, follow-up commits, formatting, and typo fixes into the related theme.
 
+Then assign every theme to exactly one project and print the projects as headings. A day's work usually spans several projects, and a diary that jumps between them is unreadable, so project grouping decides the order of the whole entry.
+
+1. Derive the project from the product or system the work serves, not only from the repository name. Several repositories that belong to one product — a desktop app and its CLI, a service and its SDK, a plugin and the host that loads it — form a single project group when the evidence shows they are parts of the same system. Conversely, unrelated work in one monorepo may still be one project group; split it only when the parts have genuinely separate goals.
+2. Give each group a short, stable, human-readable name, such as the product name, or `个人 <名称> 项目` for personal work. Reuse the same name on later dates so entries stay comparable over time.
+3. Print all themes of one group consecutively under a single `## <项目名>` heading. Never interleave projects: if themes `c1` and `c2` belong to project 1 and `c3` belongs to project 2, write `c1, c2, c3` under two headings, never `c1, c3, c2`.
+4. Keep related groups adjacent. When one project contains another — a submodule, plugin, fork, extracted library, or a component whose delivery target is the other project — print the container as `## <项目名>`, keep the container's own themes directly under it, and place the contained project below them as `### <子项目名>`. Use `###` only for this real containment or membership relation, never to sub-divide a single project by feature, day, or activity type.
+5. Order groups by the weight of the day's work: the project with the most substantive outcomes first, then the rest, subject to keeping related groups adjacent.
+6. Use a project heading even when the date has only one project. Omit headings only in a no-activity entry.
+
 Write only Chinese text that the user can paste into a personal diary:
 
 - Follow this format exactly:
 
   ```markdown
   YYYY.MM.DD
+
+  ## 项目名
+
+  > 总结做了什么的简短标题
+
+  - 做了什么：……
+  - 遇到的问题和坑：……
+  - 项目中的位置与价值：……
+  - 收获和下一步：……
+
+  > 同一项目下另一个主题的标题
+
+  - 做了什么：……
+  - 遇到的问题和坑：……
+  - 项目中的位置与价值：……
+  - 收获和下一步：……
+
+  ## 另一个项目名
 
   > 总结做了什么的简短标题
 
@@ -97,11 +124,12 @@ Write only Chinese text that the user can paste into a personal diary:
   - 收获和下一步：……
   ```
 
-- Do not add a document-level title, overview, summary table, activity index, `###` heading, bold label, or bullet category beyond the four required below.
+- Do not add a document-level title, overview, summary table, activity index, bold label, or bullet category beyond the four required below. The only headings are the `##` project headings and the `###` sub-project headings described above.
+- Keep every heading plain text: a project or sub-project name only, with no link, PR number, commit count, or event tally. Link the repository and other GitHub objects inside the bullets instead.
 - Write the date as four-digit year, two-digit month, and two-digit day separated by periods, such as `2026.07.22`.
-- For multiple work themes on the same date, print the date once, then repeat the blockquote title and four bullets for each theme.
-- For multiple dates, start each date group with its own `YYYY.MM.DD` line.
-- Make each `> …` title a concise outcome summary. Do not use a repository name or generic phrase such as “开发工作” as the title when a more specific result is known.
+- For multiple work themes on the same date, print the date once, then repeat the blockquote title and four bullets for each theme, with every theme under the heading of the project it belongs to.
+- For multiple dates, start each date group with its own `YYYY.MM.DD` line and repeat the project headings that date needs. Do not carry a project heading across a date boundary.
+- Make each `> …` title a concise outcome summary. Do not use a repository name or generic phrase such as “开发工作” as the title when a more specific result is known, and do not repeat the project name in the title because the heading above it already carries that.
 - Under every title, always provide exactly these four bullets:
   - `- 做了什么：` Describe the outcome and important implementation, testing, Issue/PR, review, discussion, documentation, or cleanup work.
   - `- 遇到的问题和坑：` Describe concrete bugs, edge cases, tradeoffs, review feedback, investigation problems, or implementation friction supported by evidence. If absent, write `现有 GitHub 记录没有说明明确的问题或坑`.
@@ -132,12 +160,15 @@ Write only Chinese text that the user can paste into a personal diary:
 - Attach the link to natural text. Never print a raw URL in the diary body and never leave a PR number or other external object as unlinked plain text.
 - Use URLs returned by the collector, `gh`, or the GitHub API as the source of truth. Do not guess an object URL from an ambiguous name or number.
 - Keep the prose readable by mentioning an object once per work-theme block when possible. If the same object must be mentioned again in another block or date, link it again.
+- Never link a `##` or `###` project heading. A heading carries only the project name; link the repository at its first mention inside that project's bullets when the repository is worth naming.
 - If a referenced external object has no verifiable URL, either omit the reference when it is nonessential or explicitly state that its link could not be verified without inventing one.
 
-Example:
+Example, with two themes of one project kept together, a contained sub-project nested under its host, and an unrelated personal project last:
 
 ```markdown
 2026.07.22
+
+## Example Desktop
 
 > 完善长会话锚点导航
 
@@ -145,6 +176,31 @@ Example:
 - 遇到的问题和坑：锚点预览曾出现……；Review 中还指出……
 - 项目中的位置与价值：这项工作位于……层，补上了……缺口；如果没有它，……仍会限制……，而现在可以进一步支持……。
 - 收获和下一步：这次修改说明复杂导航不能只验证跳转主流程，还需要覆盖……；下一步需要通过……确认它已经形成完整闭环。
+
+> 修复会话列表的滚动恢复
+
+- 做了什么：……
+- 遇到的问题和坑：……
+- 项目中的位置与价值：……
+- 收获和下一步：……
+
+### Example Desktop 插件市场
+
+> 下载插件时显示真实进度
+
+- 做了什么：……
+- 遇到的问题和坑：……
+- 项目中的位置与价值：……
+- 收获和下一步：……
+
+## 个人 example-tool 项目
+
+> 修正依赖版本误判
+
+- 做了什么：……
+- 遇到的问题和坑：……
+- 项目中的位置与价值：……
+- 收获和下一步：……
 ```
 
 ## Evidence rules
