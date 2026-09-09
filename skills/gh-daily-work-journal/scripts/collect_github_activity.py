@@ -264,6 +264,7 @@ def collect_events(
             or issue.get("pull_request")
             or target.get("pull_request")
         )
+        issue_target = {} if is_pr else (issue or target)
         action = payload.get("action") or {
             "PushEvent": "pushed",
             "CreateEvent": "created",
@@ -305,6 +306,13 @@ def collect_events(
                 "url": url,
                 "body_excerpt": excerpt(body),
                 "review_state": review.get("state"),
+                "issue_author_login": (
+                    issue_target.get("user", {}).get("login")
+                    if isinstance(issue_target.get("user"), dict)
+                    else None
+                ),
+                "issue_created_at": issue_target.get("created_at"),
+                "issue_state_reason": issue_target.get("state_reason"),
                 "pr_author_login": (
                     pull_request.get("user", {}).get("login")
                     if isinstance(pull_request.get("user"), dict)
