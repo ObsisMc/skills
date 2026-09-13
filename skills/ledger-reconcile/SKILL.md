@@ -58,6 +58,22 @@ file's source institution/account/currency/timezone when the filename alone does
 
 ## Steps
 
+0. **Set up the workspace, if it isn't already.** If `raw/`, `processed/`, `facade/`, and
+   `outputs/` don't exist yet, or the user's statement files are just sitting loose in the
+   project directory instead of sorted into them, don't guess which folder each file belongs
+   in and don't ask the user to do the filing themselves. Instead:
+   - Briefly explain what a "facade" is in this context (see "The core problem" above) —
+     a payment app like WeChat Pay, Alipay, or PayPal that settles purchases through an
+     underlying bank card or its own balance, so its export can double-count against that
+     bank/card's own statement.
+   - List the loose files and ask the user which ones are facade exports versus bank/card
+     statements, for any file where this isn't obvious from its name or a quick look at its
+     content/header (see `references/workspace-layout.md` for identification hints and the
+     naming convention to expect). Don't ask about files that are unambiguous (e.g. a file
+     named `微信支付账单....xlsx` or `支付宝交易明细....csv` is clearly a facade export).
+   - Once the split is confirmed, create the missing folders yourself and move each file into
+     `raw/` or `facade/` accordingly — this is a local, reversible file move within the user's
+     own project, not something to hand back to them.
 1. **Inventory.** List everything in `raw/` and `facade/`. For each file, identify institution,
    account (and last 4 digits if it's a card), currency, and timezone/country. Ask the user
    about anything unclear rather than assuming.
