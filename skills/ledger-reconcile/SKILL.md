@@ -78,6 +78,8 @@ file's source institution/account/currency/timezone when the filename alone does
 6. **Produce the ledger.** Write `outputs/combined_ledger_<date>/` using the fixed column order
    in `references/column-schema.md`, an overview summary (totals by currency and by account,
    transfers excluded from spend totals), and a "待核对" view listing every row with 需核对=是.
+   Apply the XLSX formatting defaults in `references/column-schema.md` (frozen header, auto-filter,
+   alternating row banding) to every row-level sheet without being asked again.
 7. **Report open questions.** Before treating the ledger as final, tell the user what was
    ambiguous, what's still pending, and what rules were applied (e.g. which facades were
    treated as default/no-reconciliation-needed) — don't bury this only inside the file.
