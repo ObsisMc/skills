@@ -9,7 +9,9 @@
 - `outputs/combined_ledger_<date>/` — the final ledger for a given run, dated `YYYYMMDD`.
 
 If any of these folders don't exist yet, create them as needed rather than asking the user to
-set them up first.
+set them up first — creating empty folders is free. Sorting the user's actual files into `raw/`
+vs `facade/` is different: see "Sorting loose files into raw/ vs facade/" below before moving
+anything.
 
 ## File naming
 
@@ -44,6 +46,23 @@ A facade's own store-of-value sub-account (WeChat's 零钱, Alipay's 余额, Pay
 equivalents) behaves like an independent account: transactions from it will never appear on any
 bank/card statement, so don't try to match them — record them directly under that pseudo-account
 name (e.g. `微信零钱`) instead.
+
+## Sorting loose files into raw/ vs facade/
+
+When the user's statement files haven't been sorted into `raw/` and `facade/` yet (see SKILL.md
+step 0), use these as quick, non-authoritative signals — never as the final word for a file
+that's actually ambiguous:
+- Filename or content names a payment app (微信/WeChat, 支付宝/Alipay, PayPal, and similar) →
+  likely `facade/`.
+- Filename or content names a bank/card issuer, or ends in what looks like a card's last 4
+  digits → likely `raw/`.
+- A project may have already settled on its own naming convention (e.g. "no trailing 4-digit
+  suffix = facade") documented in that project's own AGENTS.md/CLAUDE.md — prefer that
+  convention when one exists, since it reflects a choice the user already made for this project.
+
+Anything that doesn't clearly fall into one of these — an unfamiliar filename, a file with no
+recognizable header, or a naming convention that hasn't been established yet — gets asked about
+directly rather than sorted on a guess.
 
 ## Default-facade allowlist
 
