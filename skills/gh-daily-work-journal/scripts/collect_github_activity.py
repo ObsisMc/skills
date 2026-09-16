@@ -123,6 +123,15 @@ def account_login(item: dict[str, Any], role: str) -> str:
     return ""
 
 
+def commit_belongs_to_user(item: dict[str, Any], user: str) -> bool:
+    """Return whether GitHub attributes the commit to the authenticated user."""
+    normalized_user = user.casefold()
+    return any(
+        account_login(item, role).casefold() == normalized_user
+        for role in ("author", "committer")
+    )
+
+
 def excerpt(value: Any, limit: int = 1200) -> str:
     if not isinstance(value, str):
         return ""
@@ -547,8 +556,15 @@ def collect_detail(repository: str, sha: str) -> tuple[dict[str, Any], str | Non
 
 def collect_pushed_commits(
     activities: list[dict[str, Any]],
+    user: str,
 ) -> tuple[list[dict[str, Any]], list[str]]:
-    """Expand same-day PushEvents into commits while preserving push evidence."""
+    """Expand same-day PushEvents into the user's commits while preserving push evidence.
+
+    A push can contain commits authored by collaborators, for example after a branch
+    update or merge. The push event proves publication by ``user`` but not authorship
+    of every commit in the compared range, so filter the expanded commits by GitHub's
+    author and committer logins before returning them as user work.
+    """
     discovered: dict[tuple[str, str], dict[str, Any]] = {}
     warnings: list[str] = []
     zero_sha = "0" * 40
@@ -571,6 +587,7 @@ def collect_pushed_commits(
         }
         pushed_items: list[dict[str, Any]] = []
         range_is_complete = False
+        range_loaded = False
 
         if before and before != zero_sha and before != head:
             comparison = run_gh(
@@ -589,9 +606,18 @@ def collect_pushed_commits(
                 if isinstance(comparison_payload, dict):
                     raw_commits = comparison_payload.get("commits")
                     if isinstance(raw_commits, list):
-                        pushed_items = [item for item in raw_commits if isinstance(item, dict)]
+                        range_loaded = True
+                        pushed_items = [
+                            item
+                            for item in raw_commits
+                            if isinstance(item, dict) and commit_belongs_to_user(item, user)
+                        ]
                     total_commits = comparison_payload.get("total_commits")
-                    if isinstance(total_commits, int) and total_commits > len(pushed_items):
+                    if (
+                        isinstance(total_commits, int)
+                        and isinstance(raw_commits, list)
+                        and total_commits > len(raw_commits)
+                    ):
                         warnings.append(
                             f"{repository} push {head[:8]}: GitHub compare returned "
                             f"{len(pushed_items)} of {total_commits} commits; pushed history is incomplete."
@@ -606,9 +632,9 @@ def collect_pushed_commits(
                     + "; falling back to the pushed head commit."
                 )
 
-        if not pushed_items:
+        if not pushed_items and not range_loaded:
             head_detail, head_error = collect_detail(repository, head)
-            if head_detail:
+            if head_detail and commit_belongs_to_user(head_detail, user):
                 pushed_items = [head_detail]
             elif head_error:
                 warnings.append(
@@ -685,7 +711,7 @@ def main() -> None:
         user, journal_date, timezone, args.repo, args.owner
     )
     warnings: list[str] = []
-    pushed_items, push_warnings = collect_pushed_commits(activities)
+    pushed_items, push_warnings = collect_pushed_commits(activities, user)
     warnings.extend(push_warnings)
 
     matches: dict[tuple[str, str], dict[str, Any]] = {}
