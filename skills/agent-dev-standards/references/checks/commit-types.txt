@@ -1,0 +1,11 @@
+# Allowed commit types, one per line. verify-commit-convention reads this file;
+# CONTRIBUTING.md#commits links here rather than repeating the list.
+feat
+fix
+docs
+refactor
+test
+chore
+ci
+perf
+build

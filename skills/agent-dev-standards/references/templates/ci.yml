@@ -1,0 +1,97 @@
+# Template: .github/workflows/ci.yml
+#
+# Six jobs. Fill each `<<...>>` from references/stacks/<lang>.md and the
+# survey. Delete `typecheck` when the compiler owns it (Rust, Go). Keep the
+# job names — CONTRIBUTING.md and AGENTS.md refer to them.
+#
+# Principles:
+# - Every job calls the same commands a developer runs locally (see
+#   AGENTS.md#commands). No CI-only incantations except the matrix.
+# - `commit-convention` and `docs-gates` need full history and the PR base,
+#   hence fetch-depth: 0 and the base/head refs passed explicitly.
+# - Docs-only PRs still run docs-gates and commit-convention; skipping them
+#   is what lets docs rot.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [<<main>>]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read   # docs-gates reads PR labels for the docs-not-needed bypass
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      <<setup steps from stacks/<lang>.md>>
+      - run: <<format-check>>
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      <<setup steps>>
+      - run: <<lint>>
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      <<setup steps>>
+      - run: <<typecheck>>
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest<<, windows-latest, macos-latest — only if the project targets them>>]
+    steps:
+      - uses: actions/checkout@v4
+      <<setup steps>>
+      - run: <<test-with-coverage>>
+      - name: Enforce coverage threshold
+        run: <<coverage-threshold-command, e.g. `coverage report --fail-under=<<N>>`>>
+
+  commit-convention:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check commit subjects in this PR
+        if: github.event_name == 'pull_request'
+        run: <<checks/>>verify-commit-convention.sh "origin/${{ github.base_ref }}..HEAD"
+      - name: Check PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: <<checks/>>verify-commit-convention.sh --title "$PR_TITLE"
+      - name: Check pushed commits
+        if: github.event_name == 'push'
+        run: <<checks/>>verify-commit-convention.sh "${{ github.event.before }}..${{ github.sha }}"
+
+  docs-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Whitespace and conflict markers
+        run: git diff --check "origin/${{ github.base_ref || '<<main>>' }}"...HEAD
+      - name: Module READMEs, links, decisions, budget
+        run: <<task-runner>> check docs
+      - name: Docs updated with code (strict) and translated pairs
+        if: github.event_name == 'pull_request'
+        env:
+          DOCS_NOT_NEEDED: ${{ contains(github.event.pull_request.labels.*.name, 'docs-not-needed') && '1' || '' }}
+        run: <<checks/>>verify-doc-pairs.sh "origin/${{ github.base_ref }}...HEAD"

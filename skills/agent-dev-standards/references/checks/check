@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# check <docs|commits|stack|all> — the one entry point for every gate.
+#
+# Local and CI call this, never the individual scripts, so the two cannot
+# drift. Hang it on the project's task runner (e.g. `"check": "bash checks/check"`
+# in package.json, a `check` recipe in the justfile, a nox session) and
+# keep the group names: CONTRIBUTING.md and AGENTS.md refer to them.
+#
+# Adding a gate: drop verify-<thing>.sh beside this file and add it to the
+# matching group below.
+set -euo pipefail
+
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+# ---- stack commands (filled by the generator from AGENTS.md#commands) --------
+STACK_FORMAT_CHECK="<<format-check>>"
+STACK_LINT="<<lint>>"
+STACK_TYPECHECK="<<typecheck or empty>>"
+STACK_TEST="<<test-with-coverage>>"
+# Base ref for range-based checks when none is given.
+BASE_REF="${BASE_REF:-origin/<<main>>}"
+# ------------------------------------------------------------------------------
+
+usage() {
+  cat <<EOF
+usage: check <group> [args]
+  docs              module READMEs, links, decisions, AGENTS.md budget
+  pairs [range]     docs moved with code + translated pairs (default range: \$BASE_REF...HEAD)
+  commits [range]   commit subjects (default range: \$BASE_REF..HEAD)
+  stack             format, lint, typecheck, tests — same commands as CI
+  all [range]       everything above
+EOF
+}
+
+status=0
+run() {
+  # run <label> <command...>: print a header, run, record failure, keep going
+  local label="$1"; shift
+  echo "==> $label"
+  if "$@"; then :; else status=1; echo "==> $label: FAILED"; fi
+  echo
+}
+
+group_docs() {
+  run verify-module-readmes   bash "$HERE/verify-module-readmes.sh"
+  run verify-md-links         bash "$HERE/verify-md-links.sh"
+  run verify-decision-format  bash "$HERE/verify-decision-format.sh"
+  run verify-agents-md-budget bash "$HERE/verify-agents-md-budget.sh"
+}
+
+group_pairs() {
+  local range="${1:-$BASE_REF...HEAD}"
+  run verify-doc-pairs bash "$HERE/verify-doc-pairs.sh" "$range"
+}
+
+group_commits() {
+  local range="${1:-$BASE_REF..HEAD}"
+  run verify-commit-convention bash "$HERE/verify-commit-convention.sh" "$range"
+}
+
+group_stack() {
+  for v in STACK_FORMAT_CHECK STACK_LINT STACK_TYPECHECK STACK_TEST BASE_REF; do
+    if [[ "${!v}" == *"<<"* ]]; then
+      echo "check: $v still holds a placeholder (${!v}); fill it from AGENTS.md#commands" >&2
+      status=1; return 0
+    fi
+  done
+  [[ -n "$STACK_FORMAT_CHECK" ]] && run format    bash -c "$STACK_FORMAT_CHECK"
+  [[ -n "$STACK_LINT" ]]         && run lint      bash -c "$STACK_LINT"
+  [[ -n "$STACK_TYPECHECK" ]]    && run typecheck bash -c "$STACK_TYPECHECK"
+  [[ -n "$STACK_TEST" ]]         && run test      bash -c "$STACK_TEST"
+  return 0
+}
+
+case "${1:-}" in
+  docs)    group_docs ;;
+  pairs)   group_pairs "${2:-}" ;;
+  commits) group_commits "${2:-}" ;;
+  stack)   group_stack ;;
+  all)     group_docs; group_pairs "${2:-}"; group_commits "${2:-}"; group_stack ;;
+  ""|-h|--help) usage; exit 2 ;;
+  *) echo "check: unknown group '$1'" >&2; usage; exit 2 ;;
+esac
+
+if [[ $status -ne 0 ]]; then
+  echo "check: some gates FAILED"
+  exit 1
+fi
+echo "check: all gates passed"
