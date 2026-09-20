@@ -23,11 +23,11 @@ Tone: imperative, concrete, no adjectives. Explain a rule's reason only when a o
 ## Commands
 
 ```sh
-<<install>>                 # e.g. pnpm install / uv sync
-<<format-check>>            # e.g. ruff format --check . — fix with: <<format-fix>>
+<<install>>
+<<format-check>>            # fix with: <<format-fix>>
 <<lint>>
 <<typecheck>>               # delete the line if the compiler owns it
-<<test-subset>>             # e.g. pytest tests/<module> -q; full suite is CI's job
+<<test-subset>>             # one module; full suite is CI's job
 <<check-docs>>              # module READMEs, links, doc pairs, decisions, budget
 <<check-all>>               # everything CI runs, locally
 ```
@@ -91,4 +91,4 @@ A task is complete when every line below is true. Check them before reporting; r
 - **DoD "While changing"** may carry up to three repo-specific one-liners drawn from the survey (e.g. "all DB access goes through `repo/`; `verify-dependency-direction`"). More than three means they belong in `docs/engineering-standards.md`.
 - **Boundaries**: fill from the survey (generated dirs, migrations, protected paths). "Never commit secrets" stays in every project — it is the single most effective line in the GitHub corpus.
 - **Do not add**: a tech-stack section (the manifest carries it), a repository overview paragraph, style rules a formatter enforces, anything the model already knows.
-- If the repo has a `CLAUDE.md` with content, move the content here and leave `@AGENTS.md` in `CLAUDE.md`.
+- If the repo has an alias file (e.g. `CLAUDE.md`) with content, move the content here and leave only the import line in the alias.

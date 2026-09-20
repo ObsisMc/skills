@@ -1,4 +1,0 @@
-# One module directory per line, relative to the repository root.
-# verify-module-readmes and verify-doc-pairs read this file.
-<<src/core>>
-<<src/api>>

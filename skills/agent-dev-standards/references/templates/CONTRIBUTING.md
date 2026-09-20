@@ -11,7 +11,7 @@ For humans and agents alike. Setup, branches, commits, PRs, and how to run the c
 
 ```sh
 <<clone / install / bootstrap commands, exactly as run>>
-<<hook install — e.g. git config core.hooksPath .githooks | lefthook install | pre-commit install>>
+<<hook install command — whatever mechanism the research chose>>
 ```
 
 Hook installation is part of setup, not optional: the hooks run `<<format>>` and `<<lint>>` on staged files and check each commit message.
@@ -61,7 +61,7 @@ The `commit-msg` hook rejects a non-conforming subject; CI's `commit-convention`
 <<task-runner>> check all       # everything CI runs
 ```
 
-CI runs the same entry points. A green local `check all` predicts a green CI, except for the platform matrix and anything listed as CI-only in `.github/workflows/ci.yml`.
+CI runs the same entry points. A green local `check all` predicts a green CI, except for the platform matrix and anything listed as CI-only in `<<CI definition path>>`.
 
 ## Documentation
 
@@ -82,6 +82,6 @@ Never commit secrets, tokens, or real user data — including in tests, fixtures
 
 ## Notes for the generator
 
-- Commit types: keep the repo's existing set if `git log` shows one; otherwise the list above. The same list goes into `checks/verify-commit-convention.sh` — one home means the script reads it from `checks/commit-types.txt`, and this file links there rather than duplicating. If you keep the list here for readability, the script's list is authoritative and this file says so.
+- Commit types: keep the repo's existing set if `git log` shows one; otherwise the list above. The same list is the config of `verify-commit-convention` — one home means the script reads it from a data file in the checks directory, and this file links there rather than duplicating. If you keep the list here for readability, the script's list is authoritative and this file says so.
 - Branch naming: record what the repo actually does. Do not impose opencode's three-word rule on a repo that uses `feature/…` — but do write the rule down, whichever it is.
 - If a `CONTRIBUTING.md` exists, merge: keep its voice, add the missing sections (Commits with examples, Evidence expectation, Running the checks, Documentation).

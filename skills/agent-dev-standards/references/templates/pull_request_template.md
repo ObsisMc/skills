@@ -1,4 +1,6 @@
-# Template: .github/pull_request_template.md
+# Template: pull request template
+
+Write it at the path the repo's hosting platform reads for PR templates (check the platform's current docs).
 
 Short. The *Evidence* section is the point: it makes "what did you actually run" a required field instead of an assumption, and it is where an agent's unrun checks become visible.
 

@@ -9,7 +9,7 @@ Surveyed September 2026. Read this when you need to justify a layering decision 
 3. openclaw — a working agreement and authority boundaries
 4. codex, opencode, goose, ghostty — the lean files
 5. What the studies found
-6. How agents load these files (tool differences that matter)
+6. How agents load these files (a research item, not a table)
 
 ## 1. The tier table
 
@@ -73,19 +73,10 @@ Practical consequence: the generic best-practice content the user wants agents t
 
 ## 6. How agents load these files
 
-| Mechanism | Claude Code | Codex | opencode |
-| --- | --- | --- | --- |
-| Root `AGENTS.md` | Read at start when no `CLAUDE.md` exists (v2.1.277+); otherwise via `@AGENTS.md` import | Read at start | Read at start |
-| Subdirectory `AGENTS.md` | Loaded when Claude reads a file in that directory | Merged root → cwd | Partial |
-| `CLAUDE.md` | Read at start; a `CLAUDE.md` anywhere above cwd **suppresses** direct `AGENTS.md` reading unless it imports it | Ignored | Read as fallback |
-| `.claude/rules/*.md` (path-scoped) | Yes | No | No |
-| `.agents/skills/*/SKILL.md` | Yes | Yes | Yes |
-| Long docs linked from the root | On demand, all tools | | |
+Which files an agent reads at start, which it loads lazily, and whether it honours an alias or import file are **tool facts that change between releases**. Do not rely on a remembered table; for each target agent the user names, check its current documentation during Step 1b and record what you found in the report. Three consequences hold regardless of the answers:
 
-Consequences for the generated layout:
-
-- `AGENTS.md` is canonical. If a `CLAUDE.md` is needed at all, it contains only `@AGENTS.md` — a symlink breaks on Windows clones without Developer Mode.
-- Do not use `.claude/rules/`; path-scoped rules go in subdirectory `AGENTS.md` files, which two of the three tools load automatically and the third reaches through the root rule "read the module's README/AGENTS.md before editing it".
+- `AGENTS.md` is canonical. If a tool needs an alias file at all, that file contains only the import line in the form the tool supports — never a copy of the content, and not a symlink (symlinks break on some clones).
+- Do not use any tool-proprietary rule directory; path-scoped rules go in subdirectory `AGENTS.md` files, which most tools load automatically and the rest reach through the root rule "read the module's README/AGENTS.md before editing it".
 - Because subdirectory files are loaded lazily by some tools and not at all by others, the root must carry the rule that makes reading them mandatory. That rule is what makes module READMEs part of the process rather than decoration.
 
-Sources: deepseek-ai/deepseek-harness (`AGENTS.md`, `docs/AGENTS.md`, `docs/testing.md`, `.agents/notes/README.md`, `packages/AGENTS.md`); openclaw/openclaw (`AGENTS.md`, `docs/AGENTS.md`, `.agents/skills/deslop`, `.agents/skills/openclaw-testing`); openai/codex, sst/opencode, block/goose, ghostty-org/ghostty, cline/cline root files; github.blog "How to write a great agents.md"; arXiv 2511.12884; developers.redhat.com "Standardize project context with AGENTS.md and Agent Skills"; code.claude.com/docs/en/memory.
+Sources: deepseek-ai/deepseek-harness (`AGENTS.md`, `docs/AGENTS.md`, `docs/testing.md`, `.agents/notes/README.md`, `packages/AGENTS.md`); openclaw/openclaw (`AGENTS.md`, `docs/AGENTS.md`, `.agents/skills/deslop`, `.agents/skills/openclaw-testing`); openai/codex, sst/opencode, block/goose, ghostty-org/ghostty, cline/cline root files; github.blog "How to write a great agents.md"; arXiv 2511.12884; developers.redhat.com "Standardize project context with AGENTS.md and Agent Skills".

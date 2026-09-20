@@ -1,6 +1,6 @@
 # Template: module README.md
 
-One per module directory listed in `checks/modules.txt`. This is the module's **contract** — what other code and other agents may rely on — not a tour of its implementation. `verify-module-readmes` requires the headings marked *(required)* — the marker is for you, not for the output; keep the headings' exact English wording so the check can find them (translated pairs translate the body, not the heading anchor — see the pair template note below).
+One per module directory in the module registry the checks directory reads. This is the module's **contract** — what other code and other agents may rely on — not a tour of its implementation. `verify-module-readmes` requires the headings marked *(required)* — the marker is for you, not for the output; keep the headings' exact English wording so the check can find them (translated pairs translate the body, not the heading anchor — see the pair template note below).
 
 Pre-fill from code. Where you cannot tell, write `TODO(owner): <one-line question>` rather than plausible prose; an honest gap is cheaper than a wrong invariant.
 

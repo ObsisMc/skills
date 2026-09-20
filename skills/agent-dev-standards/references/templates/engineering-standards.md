@@ -141,7 +141,7 @@ function getUser(id: string): User
 
 ## What this file is not
 
-It does not repeat what `<<formatter>>` and `<<linter>>` enforce; run them. It does not carry project commands (root `AGENTS.md`) or module contracts (each module's README). When a rule here becomes enforceable by a lint rule or a `checks/verify-*` script, add the check and delete the rule.
+It does not repeat what `<<formatter>>` and `<<linter>>` enforce; run them. It does not carry project commands (root `AGENTS.md`) or module contracts (each module's README). When a rule here becomes enforceable by a lint rule or a `verify-*` script in the checks directory, add the check and delete the rule.
 ```
 
 ---
