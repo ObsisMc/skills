@@ -56,7 +56,7 @@ A task is complete when every line below is true. Check them before reporting; r
 - A choice another agent might re-litigate (A over B, deliberately not doing X, adding or removing an abstraction) ⇒ a record in [docs/decisions/](docs/decisions/README.md). `verify-decision-format` checks the form.
 - Meaningful behavior ⇒ a test that fails before and passes after, at the tier [docs/testing.md](docs/testing.md) names. No tests for static values or that mirror the implementation. Coverage gate: <<N>>% on <<changed files / project>>.
 - Format, lint, typecheck, and the relevant test subset ran; the PR's *Evidence* section lists what ran and what did not.
-- Commits: `type(scope): summary` — see [CONTRIBUTING.md](CONTRIBUTING.md#commits). Hook and `commit-convention` job enforce it.
+- Commits: Conventional Commits `type(scope)!?: description` — see [CONTRIBUTING.md](CONTRIBUTING.md#commits). Hook and the required `commit-convention` job enforce it.
 - A bug that reached <<users / a merged PR / a release>> and clears the [postmortem bar](docs/postmortem/README.md#when-to-write-one) ⇒ <<policy: `ask` — say why it clears the bar and ask before writing | `auto` — write it | `manual` — only when asked>>.
 
 ## Boundaries *(keep)*

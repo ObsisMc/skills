@@ -54,8 +54,8 @@ Implement each of these. Add more only when the survey shows a repo-specific inv
 
 ### `verify-commit-convention <range> | --title <text> | --file <path>`
 
-**Invariant**: each commit subject in the range (and a PR title, and a commit message file for the hook) matches `type(scope)!?: summary` with `type` from the allowed set, an imperative lowercase summary, no trailing period, at most the configured length.
-**Config**: the allowed type list in a sibling data file (the single home; `CONTRIBUTING.md` links to it), `MAX_SUBJECT`.
+**Invariant**: every commit message in the range (and a PR title, and a commit message file for the hook) conforms to the [Conventional Commits 1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/#summary): subject `type(scope)!?: description` with `type` from the allowed set, a non-empty description, at most the configured subject length; a `!` or a `BREAKING CHANGE:` footer marks a breaking change (either is valid per the spec; when the footer is present the description must be non-empty too); footers follow the `token: value` / `token #value` form. House rules on top of the spec (imperative mood, lowercase description, no trailing period) are configurable and reported separately from spec violations. Read the spec when implementing; do not reconstruct it from memory.
+**Config**: the allowed type list in a sibling data file (the single home; `CONTRIBUTING.md` links to it), `MAX_SUBJECT`, the house-rule toggles.
 **Failure output**: the offending subject, which rule it broke, and one conforming example.
 **Prove it**: run it against the last 20 commits in dry-run mode during Step 4 and report how many would fail; plant one bad subject on a scratch branch.
 
@@ -101,6 +101,16 @@ Principles:
 - **pre-commit**: format check and lint on the *staged* files only; exit non-zero with the fix command. Nothing repo-wide.
 - **commit-msg**: `verify-commit-convention --file <message file>`.
 - The mechanism is the one the repo already has; otherwise the zero-dependency option the VCS itself supports, or a hook framework if the user prefers one. Whichever it is, installation is one command in `CONTRIBUTING.md#setup`, and the hooks are tracked in the repository.
+
+## Making the gates mandatory
+
+A gate that can be bypassed is a suggestion. Three layers, each covering the previous one's hole:
+
+1. **Hooks** catch the mistake before it becomes a commit. They can be skipped with the VCS's no-verify flag, so `AGENTS.md#boundaries` forbids that flag — but that is a rule, not a gate.
+2. **CI jobs** re-run every check on the PR and the pushed range, independent of the developer's machine. They cannot be skipped, but a red job does not stop a merge by itself.
+3. **Branch protection** on the main branch: every job in the CI contract is a *required status check*, and merging with a failing required check is disabled. Set this up through the hosting platform if you have the permission; otherwise put the exact setting (platform, branch, the six job names) in the report as a `TODO(owner)` and say plainly that until it is done the gates are advisory.
+
+Also require the PR title to pass `verify-commit-convention --title` if the repo squash-merges — the title becomes the commit subject on the main branch.
 
 ## Proving the gates (Step 4)
 

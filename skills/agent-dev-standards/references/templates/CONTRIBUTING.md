@@ -26,7 +26,7 @@ Short, hyphenated, at most <<three>> words, describing the change: `session-reco
 
 ## Commits
 
-Format: `type(scope): summary`
+Format: `type(scope): summary` — [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
 
 - `type` ∈ `<<feat | fix | docs | refactor | test | chore | ci | perf | build>>`
 - `scope` optional; the module or area (`core`, `api`, `cli`, `docs`).
@@ -43,7 +43,7 @@ docs: update decision index for single-writer store
 refactor(adapters)!: drop the legacy csv reader
 ```
 
-The `commit-msg` hook rejects a non-conforming subject; CI's `commit-convention` job checks every commit in the PR and the PR title. Do not bypass with `--no-verify` — fix the message.
+The `commit-msg` hook rejects a non-conforming subject; CI's `commit-convention` job checks every commit in the PR and the PR title, and is a required check on `<<main>>`. Do not bypass with `--no-verify` — fix the message.
 
 ## Pull requests
 

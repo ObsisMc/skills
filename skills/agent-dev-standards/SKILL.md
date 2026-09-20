@@ -35,7 +35,8 @@ Establish facts before asking anything. Detect:
   - **init** — no agent instructions exist. Generate the full set.
   - **adopt** — some exist. Keep everything that still holds, fill the gaps, and relocate content that sits in the wrong tier (a 400-line AGENTS.md usually contains three docs that want to be files). Never overwrite a file the user wrote without showing the diff first.
   - **audit** — the user only wants a review. Run `references/slop-checklist.md` against the existing files and report; change nothing unless asked.
-- `git log --oneline -30` for the current commit message style; if it is already conventional, keep its type set rather than imposing a new one.
+- `git log --oneline -30` for the current commit message style; if it already follows Conventional Commits, keep its type set rather than imposing a new one.
+- Branch protection / required status checks on the main branch, if the hosting platform exposes them — the gates are only mandatory once the CI jobs are required there.
 
 ### Step 1b: Research the toolchain
 
@@ -98,7 +99,7 @@ Anything you could not run (no network, missing toolchain, sandbox) goes into th
 
 ### Step 5: Report
 
-Lead with what exists now and what enforces it, as a table: rule → where it is written → what check fires. Then the toolchain decisions with their evidence, the list of `TODO(owner)` items, then unverified commands and unproven gates. Keep it short; the files are the deliverable.
+Lead with what exists now and what enforces it, as a table: rule → where it is written → what check fires. Then the toolchain decisions with their evidence, whether branch protection makes the CI jobs required (or the `TODO(owner)` to do so — see `references/gates.md` → *Making the gates mandatory*), the list of `TODO(owner)` items, then unverified commands and unproven gates. Keep it short; the files are the deliverable.
 
 ## The Definition of Done
 
@@ -114,7 +115,7 @@ This is the section that turns the root file from documentation into a process. 
 - A choice another agent might re-litigate ⇒ a record in `docs/decisions/` — *gate: `verify-decision-format`* (checks form; judgment stays with the agent).
 - Meaningful behavior ⇒ a test that failed before and passes after; no tests for static values or that merely mirror the implementation — *gate: `test` job coverage threshold*.
 - Ran format, lint, typecheck, the relevant test subset; the PR's Evidence section lists what ran and what did not — *gate: the CI jobs; the PR template makes omission visible*.
-- Commits follow `type(scope): summary` — *gate: commit-msg hook + `commit-convention` job*.
+- Commits follow Conventional Commits (`type(scope)!?: description`, `BREAKING CHANGE:` footer) — *gate: commit-msg hook + `commit-convention` job, required by branch protection*.
 - A bug that escaped to users / a merged PR / a release and clears the postmortem bar ⇒ follow the postmortem policy — *gate: none possible; the policy line says whether to ask, write, or wait to be asked*.
 
 ## The checks directory
