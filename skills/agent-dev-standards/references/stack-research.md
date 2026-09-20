@@ -52,7 +52,7 @@ Where a command needs a value from the interview (coverage threshold, base branc
 
 - Read the platform's current documentation for the syntax of jobs, matrices, caching, base-ref access, and label access. Do not assume the action / orb / template versions you remember are current — look them up or copy from the repo's existing CI.
 - Every CI job runs the same command a developer runs locally, taken from `AGENTS.md#commands`. No CI-only incantations except the platform matrix.
-- Hooks are fast and staged-only; anything repo-wide stays in CI. The hook install command is part of `CONTRIBUTING.md#setup`.
+- Hooks are fast and staged-only; anything repo-wide stays in CI. Their installation rides on the install command (no separate step) and `verify-hooks-installed` guards it — see `gates.md` → *The hook contract*.
 
 ## 6. Module detection
 
