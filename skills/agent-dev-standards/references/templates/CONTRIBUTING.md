@@ -11,10 +11,9 @@ For humans and agents alike. Setup, branches, commits, PRs, and how to run the c
 
 ```sh
 <<clone / install / bootstrap commands, exactly as run>>
-<<hook install command — whatever mechanism the research chose>>
 ```
 
-Hook installation is part of setup, not optional: the hooks run `<<format>>` and `<<lint>>` on staged files and check each commit message.
+The install command also installs the git hooks (`<<how: post-install lifecycle / bootstrap script / setup target>>`); there is no separate step. The hooks run `<<format>>` and `<<lint>>` on the staged files and check each commit message; a failing hook aborts the commit. `<<task-runner>> check` refuses to run until the hooks are installed. Do not bypass with `--no-verify`: CI re-runs the same checks and branch protection blocks the merge.
 
 Day-to-day commands: [AGENTS.md#commands](AGENTS.md#commands).
 

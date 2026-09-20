@@ -54,7 +54,7 @@ Ask only what the survey and research cannot answer. One message, grouped. Sugge
 | Tool proposals for empty roles | The research's pick, with its evidence | The user may already have an opinion; a tool imposed silently gets ripped out |
 | Module list | The survey's detection | It becomes the module registry the docs gate reads |
 | Name of the checks directory | `checks/` (avoid names that collide with domain terms in the project — e.g. `guardrails/` in an LLM project) | Recorded in `AGENTS.md` and never changes afterwards, so it is worth one question |
-| Pre-commit mechanism | Whatever the repo has; else the zero-dependency option the VCS supports; a hook framework if the user prefers | Hooks must travel with the repository and install from an existing setup step |
+| Pre-commit mechanism | Whatever the repo has; else the zero-dependency option the VCS supports; a hook framework if the user prefers | Hooks must travel with the repository and install **automatically** from the existing install command — a hook nobody installed is not a gate |
 | Postmortem policy | `ask` — after fixing a bug that clears the bar, the agent explains why and asks before writing | `auto` writes without asking; `manual` removes the self-check from the DoD entirely |
 | Strictness of the docs gate | `strict` — module code changed ⇒ module README touched in the same PR, bypass only with an explicit PR label | The user asked for "docs updated on every change"; make the bypass explicit rather than the rule soft |
 
@@ -80,7 +80,7 @@ Produce the files below. Documents have a template in `references/templates/`; r
 | PR template | `templates/pull_request_template.md` | At the path the repo's hosting platform reads. Problem / Change / **Evidence** (what ran, what did not) / Docs / Decision |
 | CI pipeline | `references/gates.md` → *The CI contract* | Jobs `format`, `lint`, `typecheck`, `test`, `commit-convention`, `docs-gates`, implemented on the platform the repo uses with the commands from the research. Drop `typecheck` where the compiler owns it |
 | Checks directory | `references/gates.md` → *The verify scripts* and *The `check` entry point* | Write each verify script and the `check` entry point to the spec, in the repo's scripting convention, wired onto its task runner |
-| Hooks | `references/gates.md` → *The hook contract* | format + lint on staged files, commit-msg convention check. Fast, staged-only; everything repo-wide stays in CI |
+| Hooks | `references/gates.md` → *The hook contract* | pre-commit: format + lint on staged files; commit-msg: Conventional Commits check. Installed by the repo's install command, not a separate step; `verify-hooks-installed` guards that. Fast, staged-only; everything repo-wide stays in CI |
 | Translated pairs | — | If requested: `README.<lang>.md` beside every module README and `docs/<name>.<lang>.md` beside every doc except `AGENTS.md`. Same section structure, translated by you now, kept in sync by the `verify-doc-pairs` gate later |
 
 Order of writing: `AGENTS.md` last. Everything else exists first so its links resolve.
@@ -92,7 +92,7 @@ Nothing goes into `AGENTS.md`'s command block that you have not executed. Run:
 1. Every command listed in `AGENTS.md` (install, format check, lint, typecheck, test subset). A command that fails on the current tree either gets fixed, gets removed, or gets a note in the report — never silently shipped.
 2. The `check` entry point end to end, so the docs gates pass on the tree you just produced (module READMEs exist, links resolve, budget holds, decisions folder parses).
 3. Every verify script against a planted violation on a scratch branch (`references/gates.md` → *Proving the gates*): watch it go red, revert. `verify-commit-convention` additionally in dry-run mode over the last 20 commits; report how many would fail so the user knows what the gate will do to their history.
-4. The pre-commit and commit-msg hooks once, on a scratch commit in a temporary branch, then delete the branch.
+4. The hooks: clone the repo to a temporary directory, run only the install command from `AGENTS.md#commands`, and confirm the hooks are active there (`verify-hooks-installed` passes); then, on a scratch branch, make one commit with an unformatted file and one with a bad message and watch both be rejected. Delete the branch and the clone.
 5. The CI definition with whatever local validation the platform offers (a linter, a dry run); if none exists, at least confirm every command it calls is one you ran in item 1.
 
 Anything you could not run (no network, missing toolchain, sandbox) goes into the final report as *unverified*, by name.
@@ -115,7 +115,7 @@ This is the section that turns the root file from documentation into a process. 
 - A choice another agent might re-litigate ⇒ a record in `docs/decisions/` — *gate: `verify-decision-format`* (checks form; judgment stays with the agent).
 - Meaningful behavior ⇒ a test that failed before and passes after; no tests for static values or that merely mirror the implementation — *gate: `test` job coverage threshold*.
 - Ran format, lint, typecheck, the relevant test subset; the PR's Evidence section lists what ran and what did not — *gate: the CI jobs; the PR template makes omission visible*.
-- Commits follow Conventional Commits (`type(scope)!?: description`, `BREAKING CHANGE:` footer) — *gate: commit-msg hook + `commit-convention` job, required by branch protection*.
+- Commits follow Conventional Commits (`type(scope)!?: description`, `BREAKING CHANGE:` footer) — *gate: commit-msg hook rejects the commit; `commit-convention` job catches a bypass; branch protection blocks the merge*.
 - A bug that escaped to users / a merged PR / a release and clears the postmortem bar ⇒ follow the postmortem policy — *gate: none possible; the policy line says whether to ask, write, or wait to be asked*.
 
 ## The checks directory

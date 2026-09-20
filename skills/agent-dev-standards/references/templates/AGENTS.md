@@ -23,7 +23,7 @@ Tone: imperative, concrete, no adjectives. Explain a rule's reason only when a o
 ## Commands
 
 ```sh
-<<install>>
+<<install>>                 # also installs the git hooks
 <<format-check>>            # fix with: <<format-fix>>
 <<lint>>
 <<typecheck>>               # delete the line if the compiler owns it

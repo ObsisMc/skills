@@ -15,7 +15,7 @@ Whatever the language, the standards need a command for each role below. Fill th
 | Test subset | Run the tests for one module, fast | never |
 | Test with coverage | Full suite with a measured coverage figure and a threshold that fails the run | never |
 | Task runner | The thing `check <group>` hangs on so local and CI invoke one name | none exists and the user declines to add one — then document the direct invocation |
-| Hook mechanism | Runs format + lint on staged files and validates each commit message; installs from the setup step; travels with the repo | never |
+| Hook mechanism | Runs format + lint on staged files and validates each commit message; tracked in the repo; **installed automatically by the install command** (find the mechanism's post-install / bootstrap facility in its current docs) | never |
 | CI platform | Runs the same commands on every PR and push to the main branch | the repo has no hosted CI — then generate the local `check all` only and say so |
 
 ## 2. Where the evidence lives
