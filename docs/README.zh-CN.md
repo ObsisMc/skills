@@ -26,6 +26,7 @@ npx skills@latest add ObsisMc/skills
 
 | 技能 | 所属插件 | 调用方式 | 说明 |
 |------|---------|---------|------|
+| [agent-dev-standards](../skills/agent-dev-standards/SKILL.md) | - | 仅显式调用 | 为项目初始化或审计 AI 协作规范：精简的根 AGENTS.md（含 Definition of Done）、每个模块的 README 契约、工程实践 / 测试 / 决策记录 / 事故复盘文档、CONTRIBUTING 与 PR 模板、包含 format / lint / typecheck / 覆盖率 / commit 规范 / 文档门禁的 CI，以及强制执行这些规范的校验脚本——只给出契约，由 AI 调研仓库现有技术栈后自行实现 |
 | [bug-postmortem](../skills/bug-postmortem/SKILL.md) | - | 仅显式调用 | 为逃逸到生产环境的 bug 撰写代码级复盘：重点是为什么每道安全网都没拦住，以及新增什么防护让同类问题下次明确报错 |
 | [bugfix-refine](../skills/bugfix-refine/SKILL.md) | speckit | 仅显式调用 | 在 speckit 管理的项目中修复 bug 并优化代码质量 |
 | [gh-daily-work-journal](../skills/gh-daily-work-journal/SKILL.md) | - | 仅显式调用 | 汇总完整 GitHub 活动与跨日推送、合入进展，并结合代码和项目背景生成带来源链接、按项目分组归类、突出成果、难点、项目位置、价值与下一步的中文工作日记 |
