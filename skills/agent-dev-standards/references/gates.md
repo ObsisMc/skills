@@ -50,33 +50,39 @@ Implement each of these. Add more only when the survey shows a repo-specific inv
 **Invariant**: every record in the decisions directory follows `templates/decisions-README.md`:
 1. *Name*: `YYYY-MM-DD-<slug>.md` with a slug unique across all records, and the date equal to the header's *Date*; legacy numbered names are accepted only for the frozen set the README lists.
 2. *Header*: the five fields (*Status*, *Date*, *Deciders*, *Scope*, *Relations*) are present; *Status* and *Scope* take only configured values; *Relations* parses.
-3. *Body*: dated records have every heading on the template's *Required sections* line, a non-empty *Considered options*, a non-empty *Revisit when*, and — when *Constraints* exists — constraints numbered 1, 2, 3 … with a non-empty *Confirmation*. Frozen legacy records only need their original context and alternatives sections.
+3. *Body*, for dated records: every heading the *Required sections* paragraph requires for the record's status is present and every heading it forbids for that status is absent; *Decision* contains at least `### D1`; *Invariants* is numbered 1, 2, 3 …; *Considered options* is a table with a *Strengths* column; *Revisit when* is non-empty. Frozen legacy records only need their original context and alternatives sections.
 4. *Relations agree*: every `supersedes X` has the matching `superseded by` on X (and the same part, for partial supersession), and vice versa; *Status* is `superseded` exactly when the record is wholly superseded; every referenced record exists.
 5. *Current decisions is current*: the *Current decisions* section of `docs/architecture.md` links no record whose status is `superseded` or `deprecated`.
-**Config**: decisions directory; scopes; the frozen legacy list; and, copied word for word from `templates/decisions-README.md` as written into the repo: the status values from its *Status and relations* table, the required headings from its *Required sections* line, the header field names and the relation keywords. When the README is translated, this configuration is translated with it.
-**Failure output**: `docs/decisions/<file>: <what is missing or which relation disagrees>`.
-**Prove it**: empty *Considered options*; drop *Confirmation* under existing constraints; use an unknown status; add a new numbered file; write `supersedes X` without touching X; mark a record linked from *Current decisions* as superseded.
+**Config**: decisions directory; scopes; the frozen legacy list; and, copied word for word from `templates/decisions-README.md` as written into the repo: the status values from its *Status and lifecycle* table, the required and forbidden headings per status from its *Required sections* paragraph, the header field names and the relation keywords. When the README is translated, this configuration is translated with it.
+**Failure output**: `docs/decisions/<file>: <what is missing, forbidden for this status, or which relation disagrees>`.
+**Prove it**: an `accepted` record without *Rollout*; an `implemented` record that still has *Acceptance criteria*, or lacks *Verification*; no `### D1`; misnumbered invariants; an options list instead of a table, or a table without *Strengths*; an unknown status; a new numbered file; `supersedes X` without touching X; a record linked from *Current decisions* marked superseded.
 
 ### `verify-decision-index`
 
-**Invariant**: the index between the markers in `docs/decisions/README.md` equals what the generator produces from the records and the constraint tags — status, scope and implementation progress cannot be hand-edited or go stale.
+**Invariant**: the index between the markers in `docs/decisions/README.md` equals what the generator produces from the records and the invariant tags — status, scope and implementation progress cannot be hand-edited or go stale.
 **Config**: the README path and its markers; the generator command (`<<task-runner>> decision:index`), which lives beside the verify scripts and shares their parser.
 **Failure output**: `docs/decisions/README.md: index is out of date` plus the generator command.
-**Prove it**: add a record without regenerating; add a constraint tag to a test without regenerating.
+**Prove it**: add a record without regenerating; add an invariant tag to a test without regenerating.
 
 ### `verify-decision-tags`
 
-**Invariant**: every `[decision:<slug>#<n>]` tag in a test file or verify script names an existing dated record and one of its numbered constraints. Prototype and spike directories are not scanned, and tags there do not count toward implementation.
+**Invariant**: every `[decision:<slug>#<n>]` tag in a test file or verify script names an existing dated record and one of its numbered invariants. Prototype and spike directories are not scanned, and tags there do not count toward implementation.
 **Config**: the tag pattern; the scanned file globs; the excluded directories.
-**Failure output**: `<file>:<line>: [decision:<slug>#<n>] — <record> has no constraint <n>` (or names no record).
-**Prove it**: tag a test with a constraint number the record does not have, and with an unknown slug.
+**Failure output**: `<file>:<line>: [decision:<slug>#<n>] — <record> has no invariant <n>` (or names no record).
+**Prove it**: tag a test with an invariant number the record does not have, and with an unknown slug.
 
 ### `verify-decision-immutable <range>`
 
-**Invariant**: for each record that existed at the base of the range with a status other than `proposed`, the only differences are the *Status* and *Relations* lines and lines appended to the end of *Implementation log*; such a record is not deleted. Bypass only through an environment variable set by CI from a PR label (default `decision-amend`), and print that the bypass was used. Compare against the working tree so a local run sees uncommitted edits.
-**Config**: decisions directory; the header lines that may change; the log heading; bypass variable name.
-**Failure output**: `<file>: body changed after acceptance — supersede it with a new record, or use <label> with a reason`.
-**Prove it**: on a scratch branch commit an accepted record, then edit its outcome (red), edit only its *Relations* and append to the log (green), delete it (red).
+**Invariant**: for each record that existed at the base of the range:
+- status `proposed` at the base: anything may change;
+- status `accepted` or `implemented` at the base: the frozen sections (*Decision drivers*, *Invariants*, *Considered options*) are unchanged; the header and every other section may change;
+- status `rejected`, `deprecated` or `superseded` at the base, and every frozen legacy record: the body is unchanged; only the *Status* and *Relations* lines may change;
+- a record that left `proposed` is not deleted.
+Bypass only through an environment variable set by CI from a PR label (default `decision-amend`), and print that the bypass was used. Compare against the working tree so a local run sees uncommitted edits.
+**Config**: decisions directory; the frozen section headings and the fully frozen statuses (from the README's *Status and lifecycle* table); bypass variable name.
+**Failure output**: `<file>: <section> changed after acceptance — supersede it with a new record, or use <label> with a reason`.
+**Prove it**: on a scratch branch commit an accepted record, then edit an invariant (red), edit a considered option (red), edit *Decision* and the status line (green); commit a rejected record and edit its body (red); delete an accepted record (red).
+
 ### `verify-commit-convention <range> | --title <text> | --file <path>`
 
 **Invariant**: every commit message in the range (and a PR title, and a commit message file for the hook) conforms to the [Conventional Commits 1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/#summary): subject `type(scope)!?: description` with `type` from the allowed set, a non-empty description, at most the configured subject length; a `!` or a `BREAKING CHANGE:` footer marks a breaking change (either is valid per the spec; when the footer is present the description must be non-empty too); footers follow the `token: value` / `token #value` form. House rules on top of the spec (imperative mood, lowercase description, no trailing period) are configurable and reported separately from spec violations. Read the spec when implementing; do not reconstruct it from memory.
@@ -91,7 +97,7 @@ One command, on the repo's task runner, that local developers and CI call — ne
 ```
 check <any group>       always runs verify-hooks-installed first; refuses if hooks are missing
 check docs              module READMEs, links, decision format / index / tags, AGENTS.md budget
-check pairs [range]     docs moved with code + translated pairs + accepted decisions unchanged
+check pairs [range]     docs moved with code + translated pairs + frozen decision sections unchanged
 check commits [range]   commit subjects
 check stack             format check, lint, typecheck, test with coverage — the same commands as CI
 check all [range]       everything above
