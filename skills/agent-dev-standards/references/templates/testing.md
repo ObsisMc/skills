@@ -34,6 +34,10 @@ Coverage gate: `<<coverage command>>` fails under **<<N>>%** on <<changed files 
 - Negative tests for logic that was removed.
 - Reversible, low-impact changes where the test would only restate the diff. Say so in the PR's Evidence section instead.
 
+## Tagging decision constraints
+
+A test or verify script that confirms numbered constraint *n* of a decision record carries `[decision:<slug>#<n>]` in its title, e.g. `it('[decision:single-writer-store#1] rejects a second writer', …)`. The decisions index counts these tags as implementation progress; `verify-decision-tags` rejects tags that name no record or constraint. Keep the tag when renaming or moving the test. <<Prototype or spike directories>> are not counted.
+
 ## Mocks
 
 Mock only the expensive or nondeterministic boundary — network, clock, external process, third-party API — and keep everything downstream real. A hand-rolled stand-in for your own module proves the bridge moves bytes, not that the module works.

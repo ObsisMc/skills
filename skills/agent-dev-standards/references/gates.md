@@ -47,11 +47,36 @@ Implement each of these. Add more only when the survey shows a repo-specific inv
 
 ### `verify-decision-format`
 
-**Invariant**: every decision record under the decisions directory has the header fields, a `Status:` value that agrees with the lifecycle folder it sits in, every required heading, and a non-empty *Alternatives considered* section.
-**Config**: decisions directory; the folder→status mapping and heading list from `templates/decisions-README.md`.
-**Failure output**: `docs/decisions/<folder>/<file>: <what is missing or mismatched>`.
-**Prove it**: empty the alternatives section of one record; move a record to the wrong folder.
+**Invariant**: every record in the decisions directory follows `templates/decisions-README.md`:
+1. *Name*: `YYYY-MM-DD-<slug>.md` with a slug unique across all records, and the date equal to the header's *Date*; legacy numbered names are accepted only for the frozen set the README lists.
+2. *Header*: the five fields (*Status*, *Date*, *Deciders*, *Scope*, *Relations*) are present; *Status* and *Scope* take only configured values; *Relations* parses.
+3. *Body*: dated records have every required heading, a non-empty *Considered options*, a non-empty *Revisit when*, and — when *Constraints* exists — constraints numbered 1, 2, 3 … with a non-empty *Confirmation*. Frozen legacy records only need their original context and alternatives sections.
+4. *Relations agree*: every `supersedes X` has the matching `superseded by` on X (and the same part, for partial supersession), and vice versa; *Status* is `superseded` exactly when the record is wholly superseded; every referenced record exists.
+5. *Current decisions is current*: the *Current decisions* section of `docs/architecture.md` links no record whose status is `superseded` or `deprecated`.
+**Config**: decisions directory; status values, scopes, header field names and required headings (in the language the README uses); the frozen legacy list.
+**Failure output**: `docs/decisions/<file>: <what is missing or which relation disagrees>`.
+**Prove it**: empty *Considered options*; drop *Confirmation* under existing constraints; use an unknown status; add a new numbered file; write `supersedes X` without touching X; mark a record linked from *Current decisions* as superseded.
 
+### `verify-decision-index`
+
+**Invariant**: the index between the markers in `docs/decisions/README.md` equals what the generator produces from the records and the constraint tags — status, scope and implementation progress cannot be hand-edited or go stale.
+**Config**: the README path and its markers; the generator command (`<<task-runner>> decision:index`), which lives beside the verify scripts and shares their parser.
+**Failure output**: `docs/decisions/README.md: index is out of date` plus the generator command.
+**Prove it**: add a record without regenerating; add a constraint tag to a test without regenerating.
+
+### `verify-decision-tags`
+
+**Invariant**: every `[decision:<slug>#<n>]` tag in a test file or verify script names an existing dated record and one of its numbered constraints. Prototype and spike directories are not scanned, and tags there do not count toward implementation.
+**Config**: the tag pattern; the scanned file globs; the excluded directories.
+**Failure output**: `<file>:<line>: [decision:<slug>#<n>] — <record> has no constraint <n>` (or names no record).
+**Prove it**: tag a test with a constraint number the record does not have, and with an unknown slug.
+
+### `verify-decision-immutable <range>`
+
+**Invariant**: for each record that existed at the base of the range with a status other than `proposed`, the only differences are the *Status* and *Relations* lines and lines appended to the end of *Implementation log*; such a record is not deleted. Bypass only through an environment variable set by CI from a PR label (default `decision-amend`), and print that the bypass was used. Compare against the working tree so a local run sees uncommitted edits.
+**Config**: decisions directory; the header lines that may change; the log heading; bypass variable name.
+**Failure output**: `<file>: body changed after acceptance — supersede it with a new record, or use <label> with a reason`.
+**Prove it**: on a scratch branch commit an accepted record, then edit its outcome (red), edit only its *Relations* and append to the log (green), delete it (red).
 ### `verify-commit-convention <range> | --title <text> | --file <path>`
 
 **Invariant**: every commit message in the range (and a PR title, and a commit message file for the hook) conforms to the [Conventional Commits 1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/#summary): subject `type(scope)!?: description` with `type` from the allowed set, a non-empty description, at most the configured subject length; a `!` or a `BREAKING CHANGE:` footer marks a breaking change (either is valid per the spec; when the footer is present the description must be non-empty too); footers follow the `token: value` / `token #value` form. House rules on top of the spec (imperative mood, lowercase description, no trailing period) are configurable and reported separately from spec violations. Read the spec when implementing; do not reconstruct it from memory.
@@ -65,8 +90,8 @@ One command, on the repo's task runner, that local developers and CI call — ne
 
 ```
 check <any group>       always runs verify-hooks-installed first; refuses if hooks are missing
-check docs              module READMEs, links, decisions, AGENTS.md budget
-check pairs [range]     docs moved with code + translated pairs
+check docs              module READMEs, links, decision format / index / tags, AGENTS.md budget
+check pairs [range]     docs moved with code + translated pairs + accepted decisions unchanged
 check commits [range]   commit subjects
 check stack             format check, lint, typecheck, test with coverage — the same commands as CI
 check all [range]       everything above
@@ -88,13 +113,14 @@ Implement on whatever CI platform the repo uses (see `stack-research.md` §5). K
 | `typecheck` | the typecheck command — omit the job when the compiler owns it | setup steps |
 | `test` | the test-with-coverage command; fails below the threshold | setup steps; a platform matrix only if the project targets several platforms today |
 | `commit-convention` | `verify-commit-convention` over the PR's commits and its title; over the pushed range on push | full history; the base ref; the PR title |
-| `docs-gates` | a whitespace / conflict-marker diff check; `verify-hooks-installed` (static part); `check docs`; `verify-doc-pairs` over the PR range with the bypass label mapped to the bypass variable | full history; the base ref; read access to PR labels |
+| `docs-gates` | a whitespace / conflict-marker diff check; `verify-hooks-installed` (static part); `check docs`; `check pairs` (`verify-doc-pairs`, `verify-decision-immutable`) over the PR range with each bypass label mapped to its bypass variable | full history; the base ref; read access to PR labels |
 
 Principles:
 
 - Triggers: every pull request, and pushes to the main branch. Cancel superseded runs of the same ref.
 - Every job calls the same commands a developer runs locally. No CI-only incantations except the matrix.
 - Docs-only PRs still run `docs-gates` and `commit-convention`; skipping them is what lets docs rot.
+- Gates with a label bypass (`check pairs`) run on pull-request events only. A push to the main branch carries no PR labels, so re-running them there fails every PR that was merged with a bypass; the PR run is the gate, and branch protection makes it required.
 - Minimal permissions: read contents, read pull requests (for the label).
 
 ## The hook contract

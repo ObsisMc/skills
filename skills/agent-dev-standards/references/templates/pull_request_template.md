@@ -34,7 +34,7 @@ Short. The *Evidence* section is the point: it makes "what did you actually run"
 
 ## Decision
 
-<!-- Link the docs/decisions/ record this PR adds or updates, or write "none needed". -->
+<!-- Link the docs/decisions/ record this PR adds, supersedes, or appends an implementation-log line to, or write "none needed". -->
 ```
 
 ---

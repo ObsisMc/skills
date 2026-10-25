@@ -1,6 +1,6 @@
 # Template: docs/architecture.md
 
-The map an agent reads before changing anything structural. It says what the modules are, who owns what, and which way dependencies may point. It does not describe implementations (module READMEs), rationale (decisions), or status. Keep it under ~120 lines; a diagram is worth more than a paragraph here.
+The map an agent reads before changing anything structural. It says what the modules are, who owns what, and which way dependencies may point. It does not describe implementations (module READMEs), rationale (decisions), or work status; its *Current decisions* table is the one place that says which decision holds today. Keep it under ~120 lines; a diagram is worth more than a paragraph here.
 
 If the repo already has an architecture document, link it from the root and add only the *Dependency direction* section if missing — that section is what `verify-dependency-direction` (if you generate one) and the module READMEs' *Allowed dependencies* refer to.
 
@@ -10,6 +10,14 @@ If the repo already has an architecture document, link it from the root and add 
 # Architecture
 
 <<Two sentences: the shape of the system (e.g. "a CLI that drives a plugin host; plugins talk to core through a typed event bus") and the one design idea everything follows.>>
+
+## Current decisions
+
+What is decided today, by scope. Each line is the current answer; the linked record says why. When a record is superseded, update its line in the same PR (`verify-decision-format` rejects links to superseded or deprecated records here).
+
+| Scope | Current decision | Record |
+| --- | --- | --- |
+| <<scope>> | <<one sentence: what holds today>> | [<<slug>>](decisions/<<yyyy-mm-dd-slug>>.md) |
 
 ## Modules
 
@@ -62,6 +70,8 @@ Where new capability goes, so a feature does not become a new core dependency:
 ---
 
 ## Notes for the generator
+
+- *Current decisions* has one row per scope that has an accepted decision. With no records yet, keep the heading and an empty table; the decisions gate requires the section.
 
 - Derive the module table from the survey; derive the dependency graph from actual imports. If the observed graph has cycles or upward imports, draw the *intended* graph and list each violation under a `## Known violations` section with a `TODO(owner)` — do not draw the mess as if it were the design.
 - If a `uml-code-atlas` skill is available and the user wants more than a map, use it for the diagrams and link its output here rather than duplicating.

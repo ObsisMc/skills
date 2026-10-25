@@ -50,7 +50,7 @@ Durable gaps a consumer should know about. Ordinary cleanup goes in a TODO or a 
 
 Records in `docs/decisions/` that shape this module. Read them before changing anything they describe.
 
-- [<<yyyy-mm-dd-topic>>](../../docs/decisions/implemented/<<yyyy-mm-dd-topic>>.md) — <<one line>>
+- [<<slug>>](../../docs/decisions/<<yyyy-mm-dd-slug>>.md) — <<one line>>
 ```
 
 ---

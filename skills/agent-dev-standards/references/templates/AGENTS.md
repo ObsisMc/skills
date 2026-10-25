@@ -54,6 +54,7 @@ A task is complete when every line below is true. Check them before reporting; r
 - Behavior changed ⇒ the module README's *Public surface* / *Invariants* / *Known limitations* updated in the same commit. `verify-doc-pairs` fails the PR otherwise; bypass only with the `docs-not-needed` label and a reason in the PR.
 - <<If translated pairs:>> `README.<<lang>>.md` and `docs/*.<<lang>>.md` updated with their English original, same commit. `verify-doc-pairs`.
 - A choice another agent might re-litigate (A over B, deliberately not doing X, adding or removing an abstraction) ⇒ a record in [docs/decisions/](docs/decisions/README.md). `verify-decision-format` checks the form.
+- Changing an existing decision ⇒ a new record that supersedes it, plus its row in [architecture.md](docs/architecture.md#current-decisions); never rewrite an accepted record's body — `verify-decision-immutable`.
 - Meaningful behavior ⇒ a test that fails before and passes after, at the tier [docs/testing.md](docs/testing.md) names. No tests for static values or that mirror the implementation. Coverage gate: <<N>>% on <<changed files / project>>.
 - Format, lint, typecheck, and the relevant test subset ran; the PR's *Evidence* section lists what ran and what did not.
 - Commits: Conventional Commits `type(scope)!?: description` — see [CONTRIBUTING.md](CONTRIBUTING.md#commits). Hook and the required `commit-convention` job enforce it.
