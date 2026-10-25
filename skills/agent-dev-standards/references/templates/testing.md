@@ -34,9 +34,9 @@ Coverage gate: `<<coverage command>>` fails under **<<N>>%** on <<changed files 
 - Negative tests for logic that was removed.
 - Reversible, low-impact changes where the test would only restate the diff. Say so in the PR's Evidence section instead.
 
-## Tagging decision constraints
+## Tagging decision invariants
 
-A test or verify script that confirms numbered constraint *n* of a decision record carries `[decision:<slug>#<n>]` in its title, e.g. `it('[decision:single-writer-store#1] rejects a second writer', …)`. The decisions index counts these tags as implementation progress; `verify-decision-tags` rejects tags that name no record or constraint. Keep the tag when renaming or moving the test. <<Prototype or spike directories>> are not counted.
+A test or verify script that verifies numbered invariant *n* of a decision record carries `[decision:<slug>#<n>]` in its title, e.g. `it('[decision:single-writer-store#1] rejects a second writer', …)`. The decisions index counts these tags as implementation progress; `verify-decision-tags` rejects tags that name no record or invariant. Keep the tag when renaming or moving the test. <<Prototype or spike directories>> are not counted.
 
 ## Mocks
 

@@ -54,7 +54,8 @@ A task is complete when every line below is true. Check them before reporting; r
 - Behavior changed ⇒ the module README's *Public surface* / *Invariants* / *Known limitations* updated in the same commit. `verify-doc-pairs` fails the PR otherwise; bypass only with the `docs-not-needed` label and a reason in the PR.
 - <<If translated pairs:>> `README.<<lang>>.md` and `docs/*.<<lang>>.md` updated with their English original, same commit. `verify-doc-pairs`.
 - A choice another agent might re-litigate (A over B, deliberately not doing X, adding or removing an abstraction) ⇒ a record in [docs/decisions/](docs/decisions/README.md). `verify-decision-format` checks the form.
-- Changing an existing decision ⇒ a new record that supersedes it, plus its row in [architecture.md](docs/architecture.md#current-decisions); never rewrite an accepted record's body — `verify-decision-immutable`.
+- Changing an existing decision or breaking its invariants ⇒ a new record that supersedes it, plus its row in [architecture.md](docs/architecture.md#current-decisions); never edit an accepted record's drivers, invariants or options — `verify-decision-immutable`.
+- Implementation of a record complete ⇒ move it to `implemented` in the same PR (drop *Rollout* / *Acceptance criteria*, add *Verification*); keep its facts current when the code later moves.
 - Meaningful behavior ⇒ a test that fails before and passes after, at the tier [docs/testing.md](docs/testing.md) names. No tests for static values or that mirror the implementation. Coverage gate: <<N>>% on <<changed files / project>>.
 - Format, lint, typecheck, and the relevant test subset ran; the PR's *Evidence* section lists what ran and what did not.
 - Commits: Conventional Commits `type(scope)!?: description` — see [CONTRIBUTING.md](CONTRIBUTING.md#commits). Hook and the required `commit-convention` job enforce it.
@@ -63,7 +64,7 @@ A task is complete when every line below is true. Check them before reporting; r
 ## Boundaries *(keep)*
 
 - ✅ Always: run `<<format-fix>>` before committing; add tests beside the code they cover (`<<tests/ layout>>`); keep secrets out of commits and logs.
-- ⚠️ Ask first: schema or migration changes; new dependencies; deleting a public export; changing CI, hooks, or this file's budget; anything under `<<protected path>>`.
+- ⚠️ Ask first: schema or migration changes; new dependencies; deleting a public export; changing CI, hooks, or this file's budget; anything under `<<protected path>>`. Exception: the dependencies and migrations an accepted record's *Rollout* lists in its autonomous implementation agreement are pre-approved — nothing beyond that list.
 - 🚫 Never: `--no-verify`; weakening an assertion, widening a mock, or adding a retry to make a test pass; editing generated files (`<<generated paths>>`) by hand; force-pushing shared branches.
 
 ## Read when relevant

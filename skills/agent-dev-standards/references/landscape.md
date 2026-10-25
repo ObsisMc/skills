@@ -23,7 +23,7 @@ Every paragraph in an agent-facing document belongs to exactly one tier. Adapted
 | Module `README.md` | The module's contract: purpose, public surface, invariants, allowed dependencies, how to test, known limitations | Restating code or docstrings; other modules' concerns |
 | `docs/architecture.md` | The map: modules, ownership, dependency direction, extension points | Per-module detail (→ README), decision rationale (→ decisions), status annotations |
 | `docs/engineering-standards.md`, `docs/testing.md` | Practice references read on demand | Project-specific commands (→ root) |
-| `docs/decisions/` | Why a choice was made and what it beat; frozen once accepted | What holds today (→ architecture *Current decisions*), configuration values, version pins, test paths, measurements |
+| `docs/decisions/` | Why a choice was made and what it beat, the design and rollout while proposed, the system's promises once implemented; drivers, invariants and options frozen once accepted | The system-wide current picture (→ architecture *Current decisions*), progress (→ issues/PRs), test paths, measurements |
 | `docs/postmortem/` | Why an escaped bug got past every net; the only tier where narrative belongs | Design decisions |
 | Skills (`.agents/skills/`) | Reusable multi-step workflows | Product contracts (→ docs or code) |
 | Git history / PR bodies | What changed and when | — (never copy it into standing docs) |
@@ -89,11 +89,14 @@ Checked against the primary sources in October 2026.
 
 What `templates/decisions-README.md` takes from this:
 
-- **Rationale and current state are separate documents.** Proposal processes freeze the rationale; an architecture document says what holds now. Hence frozen records plus *Current decisions*.
-- **Status is a controlled field and supersession is a recorded relation** (PEP, KEP), so a script can check both sides.
+- **A record is the design document, not only the rationale.** deepseek-harness (§2, `.agents/notes/README.md`) gives proposals `## Proposal`, `## Acceptance criteria` and `## Risks`, and on the move to `implemented/` rewrites the proposal into a present-tense `## Decision`, drops plans, and adds `## Testing`/`## Verification`. Implemented notes are "kept current with what actually shipped … (facts only — paths, names, structure — not the decision itself)"; reversing the decision needs a new note. The template follows this lifecycle, adding an explicit `accepted` stage between review and implementation so an agent knows when it may build.
+- **Frozen core, living facts.** Proposal processes freeze the whole record (Rust RFC, PEP); deepseek keeps facts current but never the decision. The template freezes exactly the parts a later reader must trust as written — decision drivers, invariants, considered options — and lets the rest track the code. `verify-decision-immutable` enforces the frozen part.
+- **D1…Dn items, numbered invariants, and an options table that concedes each option's strengths** come from design-spec practice the skill's author uses in a product repository. Invariants replace looser "constraints": they are short system promises that tests can tag.
+- **Rollout with an autonomous implementation agreement** makes an accepted record directly implementable by an agent: what is pre-approved, what the agent may decide, when it must stop.
+- **Status is a controlled field and supersession is a recorded relation** (PEP, KEP), so a script can check both sides; status is not a folder, so moving files never breaks links.
 - **Dated slugs, not numbers**, for repositories where agents open records on parallel branches (log4brains).
-- **MADR's Confirmation** is where a decision's constraints meet their verification; tagging tests with the constraint lets the implementation status be computed instead of written.
-- **Not adopted**: deepseek-harness Agent Notes (§2) keep implemented notes "current with shipped reality" and use lifecycle folders as status. That keeps one document accurate, but it overwrites the reasoning that was true when the choice was made, and folders cannot express partial supersession. KEPs make the living model work with per-release review; a small repository rarely has that discipline, so freezing is the safer default.
+- **Implementation status is computed**, not written: tests tag the invariant they verify (the role of MADR's *Confirmation*), and a generator counts coverage.
+- **Diverges from deepseek on the index.** deepseek forbids a central index because unrelated note changes contend on one generated file. The template keeps a generated index because it is the only place implementation progress is visible; a conflict there is resolved by regenerating, never by hand.
 
 ## 7. How agents load these files
 
@@ -103,6 +106,6 @@ Which files an agent reads at start, which it loads lazily, and whether it honou
 - Do not use any tool-proprietary rule directory; path-scoped rules go in subdirectory `AGENTS.md` files, which most tools load automatically and the rest reach through the root rule "read the module's README/AGENTS.md before editing it".
 - Because subdirectory files are loaded lazily by some tools and not at all by others, the root must carry the rule that makes reading them mandatory. That rule is what makes module READMEs part of the process rather than decoration.
 
-Sources (§6): python/peps `pep-0001.rst`; rust-lang/rfcs `README.md`; kubernetes/enhancements `keps/NNNN-kep-template/kep.yaml`; adr/madr `template/adr-template.md`; thomvaill/log4brains `docs/adr/`; backstage/backstage `docs/architecture-decisions/`; cosmos/cosmos-sdk `docs/architecture/`.
+Sources (§6): deepseek-ai/deepseek-harness `.agents/notes/README.md`, `.agents/notes/implemented/AGENTS.md`; python/peps `pep-0001.rst`; rust-lang/rfcs `README.md`; kubernetes/enhancements `keps/NNNN-kep-template/kep.yaml`; adr/madr `template/adr-template.md`; thomvaill/log4brains `docs/adr/`; backstage/backstage `docs/architecture-decisions/`; cosmos/cosmos-sdk `docs/architecture/`.
 
 Sources: deepseek-ai/deepseek-harness (`AGENTS.md`, `docs/AGENTS.md`, `docs/testing.md`, `.agents/notes/README.md`, `packages/AGENTS.md`); openclaw/openclaw (`AGENTS.md`, `docs/AGENTS.md`, `.agents/skills/deslop`, `.agents/skills/openclaw-testing`); openai/codex, sst/opencode, block/goose, ghostty-org/ghostty, cline/cline root files; github.blog "How to write a great agents.md"; arXiv 2511.12884; developers.redhat.com "Standardize project context with AGENTS.md and Agent Skills".
