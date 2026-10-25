@@ -9,7 +9,8 @@ Surveyed September 2026. Read this when you need to justify a layering decision 
 3. openclaw — a working agreement and authority boundaries
 4. codex, opencode, goose, ghostty — the lean files
 5. What the studies found
-6. How agents load these files (a research item, not a table)
+6. How large projects manage decision records
+7. How agents load these files (a research item, not a table)
 
 ## 1. The tier table
 
@@ -22,7 +23,7 @@ Every paragraph in an agent-facing document belongs to exactly one tier. Adapted
 | Module `README.md` | The module's contract: purpose, public surface, invariants, allowed dependencies, how to test, known limitations | Restating code or docstrings; other modules' concerns |
 | `docs/architecture.md` | The map: modules, ownership, dependency direction, extension points | Per-module detail (→ README), decision rationale (→ decisions), status annotations |
 | `docs/engineering-standards.md`, `docs/testing.md` | Practice references read on demand | Project-specific commands (→ root) |
-| `docs/decisions/` | Why a choice was made and what it beat | Migration plans once shipped; anything code and tests already explain |
+| `docs/decisions/` | Why a choice was made and what it beat; frozen once accepted | What holds today (→ architecture *Current decisions*), configuration values, version pins, test paths, measurements |
 | `docs/postmortem/` | Why an escaped bug got past every net; the only tier where narrative belongs | Design decisions |
 | Skills (`.agents/skills/`) | Reusable multi-step workflows | Product contracts (→ docs or code) |
 | Git history / PR bodies | What changed and when | — (never copy it into standing docs) |
@@ -71,12 +72,37 @@ Common to all of them: exact commands with flags; examples over paragraphs; an e
 
 Practical consequence: the generic best-practice content the user wants agents to follow is valuable, but it belongs in `docs/engineering-standards.md` (read on demand, with project-language examples), not in the root file.
 
-## 6. How agents load these files
+## 6. How large projects manage decision records
+
+Checked against the primary sources in October 2026.
+
+| Project | Record | What it shows |
+| --- | --- | --- |
+| Python | PEPs (`python/peps`) | PEP 1 fixes the status vocabulary (`Draft | Active | Accepted | Provisional | Deferred | Rejected | Withdrawn | Final | Superseded`) and a `Superseded-By` header; rejected PEPs stay in the repository |
+| Rust | RFCs (`rust-lang/rfcs/text`) | The README: "once accepted, RFCs should not be substantially changed. Only very minor changes should be submitted as amendments. More substantial changes should be new RFCs, with a note added to the original RFC." Implementation is tracked in a separate tracking issue |
+| Kubernetes | KEPs (`kubernetes/enhancements/keps/sig-*/`) | Machine-readable `kep.yaml`: `status: provisional\|implementable\|implemented\|deferred\|rejected\|withdrawn\|replaced`, `replaces`, `see-also`, reviewers, approvers, maturity `stage`. Grouped by SIG because dozens of groups decide independently. The one living-document model in the set, with a per-release process to keep it honest |
+| Go, Swift, Kotlin, React, Astro, npm | Proposals / RFCs in their own repositories | Proposal processes, not ADRs by name; numbers are assigned by editors or at acceptance |
+| Backstage, Cosmos SDK, CometBFT | ADRs (`docs/architecture-decisions/`, `docs/architecture/`) | ADRs by name, flat folders, sequential numbers |
+| MADR 4.0 (`adr/madr`, 2024-09) | Template | Metadata (status, date, decision-makers, consulted, informed); *Context and Problem Statement*, *Decision Drivers*, *Considered Options*, *Decision Outcome* with *Consequences* and **Confirmation** (how compliance is verified), *Pros and Cons*, *More Information* |
+| log4brains (`thomvaill/log4brains`) | ADR tool | Its own record `20201016-use-the-adr-slug-as-its-unique-id` replaced sequence numbers because numbering "causes an issue during a `git merge` when two developers have created a new ADR on their respective branch"; it supports global records plus package-specific ones in a monorepo |
+| rust-analyzer, Node.js | No formal records | Decisions live in issues, PRs and governance minutes; a maintained architecture document describes the current state |
+
+What `templates/decisions-README.md` takes from this:
+
+- **Rationale and current state are separate documents.** Proposal processes freeze the rationale; an architecture document says what holds now. Hence frozen records plus *Current decisions*.
+- **Status is a controlled field and supersession is a recorded relation** (PEP, KEP), so a script can check both sides.
+- **Dated slugs, not numbers**, for repositories where agents open records on parallel branches (log4brains).
+- **MADR's Confirmation** is where a decision's constraints meet their verification; tagging tests with the constraint lets the implementation status be computed instead of written.
+- **Not adopted**: deepseek-harness Agent Notes (§2) keep implemented notes "current with shipped reality" and use lifecycle folders as status. That keeps one document accurate, but it overwrites the reasoning that was true when the choice was made, and folders cannot express partial supersession. KEPs make the living model work with per-release review; a small repository rarely has that discipline, so freezing is the safer default.
+
+## 7. How agents load these files
 
 Which files an agent reads at start, which it loads lazily, and whether it honours an alias or import file are **tool facts that change between releases**. Do not rely on a remembered table; for each target agent the user names, check its current documentation during Step 1b and record what you found in the report. Three consequences hold regardless of the answers:
 
 - `AGENTS.md` is canonical. If a tool needs an alias file at all, that file contains only the import line in the form the tool supports — never a copy of the content, and not a symlink (symlinks break on some clones).
 - Do not use any tool-proprietary rule directory; path-scoped rules go in subdirectory `AGENTS.md` files, which most tools load automatically and the rest reach through the root rule "read the module's README/AGENTS.md before editing it".
 - Because subdirectory files are loaded lazily by some tools and not at all by others, the root must carry the rule that makes reading them mandatory. That rule is what makes module READMEs part of the process rather than decoration.
+
+Sources (§6): python/peps `pep-0001.rst`; rust-lang/rfcs `README.md`; kubernetes/enhancements `keps/NNNN-kep-template/kep.yaml`; adr/madr `template/adr-template.md`; thomvaill/log4brains `docs/adr/`; backstage/backstage `docs/architecture-decisions/`; cosmos/cosmos-sdk `docs/architecture/`.
 
 Sources: deepseek-ai/deepseek-harness (`AGENTS.md`, `docs/AGENTS.md`, `docs/testing.md`, `.agents/notes/README.md`, `packages/AGENTS.md`); openclaw/openclaw (`AGENTS.md`, `docs/AGENTS.md`, `.agents/skills/deslop`, `.agents/skills/openclaw-testing`); openai/codex, sst/opencode, block/goose, ghostty-org/ghostty, cline/cline root files; github.blog "How to write a great agents.md"; arXiv 2511.12884; developers.redhat.com "Standardize project context with AGENTS.md and Agent Skills".

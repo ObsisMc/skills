@@ -57,6 +57,7 @@ Ask only what the survey and research cannot answer. One message, grouped. Sugge
 | Pre-commit mechanism | Whatever the repo has; else the zero-dependency option the VCS supports; a hook framework if the user prefers | Hooks must travel with the repository and install **automatically** from the existing install command — a hook nobody installed is not a gate |
 | Postmortem policy | `ask` — after fixing a bug that clears the bar, the agent explains why and asks before writing | `auto` writes without asking; `manual` removes the self-check from the DoD entirely |
 | Strictness of the docs gate | `strict` — module code changed ⇒ module README touched in the same PR, bypass only with an explicit PR label | The user asked for "docs updated on every change"; make the bypass explicit rather than the rule soft |
+| Decision scopes and language | Scopes from the survey's areas (e.g. domain, storage, auth, toolchain); records in the language the user writes in | *Scope* is a validated header field and groups the *Current decisions* table; the gate's field names and status values follow the chosen language |
 
 Do not ask about things like "which sections do you want" — the layering is the point of the skill.
 
@@ -71,10 +72,10 @@ Produce the files below. Documents have a template in `references/templates/`; r
 | `<module>/README.md` (one per module) | `templates/module-README.md` | The module's contract. Pre-fill from code: purpose, public surface, invariants, allowed dependencies, how to test, known limitations, related decisions. Mark unknowns `TODO(owner)` |
 | `<module>/AGENTS.md` | — | Only when a module has operating rules that differ from the root (a generated directory, a vendored tree, a package with its own test runner). Do not create empty ones |
 | `docs/README.md` | — | A ten-line index: one line per doc under `docs/` with what it is for. The root's Layout table links here |
-| `docs/architecture.md` | `templates/architecture.md` | Module map, one-line responsibility per module, dependency direction rules ("who may import whom"). If the repo already has one, link it instead |
+| `docs/architecture.md` | `templates/architecture.md` | *Current decisions* table, module map, one-line responsibility per module, dependency direction rules ("who may import whom"). If the repo already has one, link it and add only the missing *Current decisions* and *Dependency direction* sections |
 | `docs/engineering-standards.md` | `templates/engineering-standards.md` | The general practice the user wants agents to follow. Each rule is one decidable sentence plus a Good/Bad example **in the project's language**. Rewrite the template's examples; do not ship pseudocode |
 | `docs/testing.md` | `templates/testing.md` | Test tiers, what must have a test and what must not, mock policy, flaky-test policy, coverage gate, how to run subsets |
-| `docs/decisions/README.md` | `templates/decisions-README.md` | Lightweight ADR convention: lifecycle folders, skeleton, mandatory *Alternatives considered*, when to write one, the format check |
+| `docs/decisions/README.md` | `templates/decisions-README.md` | Decision-record convention: flat folder, `YYYY-MM-DD-<slug>` names, five-field header, MADR-based body with numbered constraints and how each is confirmed, frozen after acceptance and changed only by superseding, a generated index whose implementation column comes from `[decision:<slug>#n]` test tags |
 | `docs/postmortem/README.md` | `templates/postmortem-README.md` | Self-contained: the bar, required sections, naming, index table, guardrail landing order. Works without any postmortem skill installed; if one is installed it is used for the writing |
 | `CONTRIBUTING.md` | `templates/CONTRIBUTING.md` | Setup, branch naming, commit convention with examples, PR expectations, how to run the checks locally |
 | PR template | `templates/pull_request_template.md` | At the path the repo's hosting platform reads. Problem / Change / **Evidence** (what ran, what did not) / Docs / Decision |
@@ -90,8 +91,8 @@ Order of writing: `AGENTS.md` last. Everything else exists first so its links re
 Nothing goes into `AGENTS.md`'s command block that you have not executed. Run:
 
 1. Every command listed in `AGENTS.md` (install, format check, lint, typecheck, test subset). A command that fails on the current tree either gets fixed, gets removed, or gets a note in the report — never silently shipped.
-2. The `check` entry point end to end, so the docs gates pass on the tree you just produced (module READMEs exist, links resolve, budget holds, decisions folder parses).
-3. Every verify script against a planted violation on a scratch branch (`references/gates.md` → *Proving the gates*): watch it go red, revert. `verify-commit-convention` additionally in dry-run mode over the last 20 commits; report how many would fail so the user knows what the gate will do to their history.
+2. The `check` entry point end to end, so the docs gates pass on the tree you just produced (module READMEs exist, links resolve, budget holds, decision records parse and the generated index is current).
+3. Every verify script against a planted violation on a scratch branch (`references/gates.md` → *Proving the gates*): watch it go red, revert. Range-based gates (`verify-doc-pairs`, `verify-decision-immutable`) need a committed base: commit the planted record first, then edit it. Commit any fix to the gate itself before switching to the scratch branch, or the fix leaves with the branch. `verify-commit-convention` additionally in dry-run mode over the last 20 commits; report how many would fail so the user knows what the gate will do to their history.
 4. The hooks: clone the repo to a temporary directory, run only the install command from `AGENTS.md#commands`, and confirm the hooks are active there (`verify-hooks-installed` passes); then, on a scratch branch, make one commit with an unformatted file and one with a bad message and watch both be rejected. Delete the branch and the clone.
 5. The CI definition with whatever local validation the platform offers (a linter, a dry run); if none exists, at least confirm every command it calls is one you ran in item 1.
 
@@ -113,6 +114,7 @@ This is the section that turns the root file from documentation into a process. 
 - Behavior changed ⇒ the module README's interface / invariants / limitations sections updated in the same commit — *gate: `verify-doc-pairs`, strict mode*.
 - Translated pair updated with the original — *gate: `verify-doc-pairs`*.
 - A choice another agent might re-litigate ⇒ a record in `docs/decisions/` — *gate: `verify-decision-format`* (checks form; judgment stays with the agent).
+- Changing an existing decision ⇒ a new record that supersedes it, plus its row in *Current decisions*; an implementation that follows the record as written leaves it untouched — *gate: `verify-decision-immutable`, `verify-decision-format`*.
 - Meaningful behavior ⇒ a test that failed before and passes after; no tests for static values or that merely mirror the implementation — *gate: `test` job coverage threshold*.
 - Ran format, lint, typecheck, the relevant test subset; the PR's Evidence section lists what ran and what did not — *gate: the CI jobs; the PR template makes omission visible*.
 - Commits follow Conventional Commits (`type(scope)!?: description`, `BREAKING CHANGE:` footer) — *gate: commit-msg hook rejects the commit; `commit-convention` job catches a bypass; branch protection blocks the merge*.
@@ -127,7 +129,8 @@ Verify scripts are the enforcement layer; `references/gates.md` specifies each o
 - Written in the repo's own scripting convention, adding no runtime the repo does not already have.
 - One entry point `check` on the existing task runner, with groups `docs`, `pairs`, `commits`, `stack`, `all`. Local and CI call the same entry point, never individual scripts.
 - The directory name is recorded in `AGENTS.md` and never changes.
-- Configuration (pair languages, strictness, budget ceilings, base ref, stack commands, module registry, commit types) sits at the top of each script or in a sibling data file; `check stack` refuses to run while a placeholder remains.
+- Configuration (pair languages, strictness, budget ceilings, base ref, stack commands, module registry, commit types, decision scopes and status values) sits at the top of each script or in a sibling data file; `check stack` refuses to run while a placeholder remains.
+- A generator whose output a gate compares against (the decisions index) sits beside the verify scripts, shares their parser, and has its own task-runner name.
 
 A check nobody has seen fail is decoration — Step 4 proves every one in the target repo.
 
@@ -147,6 +150,7 @@ An existing `AGENTS.md` is usually valuable and bloated at once. Work section by
 1. Classify each paragraph with the tier table in `references/landscape.md`: standing order (stays), procedure (→ `docs/` or a skill), module fact (→ module README), decision rationale (→ `docs/decisions/`), history (→ delete; the VCS has it), generic advice (→ delete).
 2. Show the user the proposed moves as a table before touching anything.
 3. Keep the user's voice and specific gotchas — those are the highest-value lines in any agent file. What gets cut is restatement, not knowledge.
+4. Existing decision records (ADRs, RFC-style notes) are history: keep their directory and names, never rewrite their bodies, and migrate only their headers to the five fields, in one PR under the `decision-amend` label with the old status text kept as a quoted note. Write the supersession relations that already exist between them, mark wholly replaced ones `superseded`, and start new records with dated names. See the generator notes in `templates/decisions-README.md`.
 
 ## Audit mode
 
@@ -156,6 +160,6 @@ Run `references/slop-checklist.md` against the root file and any `docs/AGENTS.md
 
 - `references/stack-research.md` — how to establish the repo's toolchain and commands by investigation, and how to choose a tool when a role is empty
 - `references/gates.md` — the contract for every verify script, the `check` entry point, the CI jobs, and the hooks
-- `references/landscape.md` — the evidence behind the layering: what well-run agent-driven projects do, what the studies found, the tier table used in adopt mode
+- `references/landscape.md` — the evidence behind the layering: what well-run agent-driven projects do, how large projects manage decision records, what the studies found, the tier table used in adopt mode
 - `references/slop-checklist.md` — the audit list
 - `references/templates/` — one skeleton per generated document
