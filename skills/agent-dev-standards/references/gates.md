@@ -50,10 +50,10 @@ Implement each of these. Add more only when the survey shows a repo-specific inv
 **Invariant**: every record in the decisions directory follows `templates/decisions-README.md`:
 1. *Name*: `YYYY-MM-DD-<slug>.md` with a slug unique across all records, and the date equal to the header's *Date*; legacy numbered names are accepted only for the frozen set the README lists.
 2. *Header*: the five fields (*Status*, *Date*, *Deciders*, *Scope*, *Relations*) are present; *Status* and *Scope* take only configured values; *Relations* parses.
-3. *Body*: dated records have every required heading, a non-empty *Considered options*, a non-empty *Revisit when*, and — when *Constraints* exists — constraints numbered 1, 2, 3 … with a non-empty *Confirmation*. Frozen legacy records only need their original context and alternatives sections.
+3. *Body*: dated records have every heading on the template's *Required sections* line, a non-empty *Considered options*, a non-empty *Revisit when*, and — when *Constraints* exists — constraints numbered 1, 2, 3 … with a non-empty *Confirmation*. Frozen legacy records only need their original context and alternatives sections.
 4. *Relations agree*: every `supersedes X` has the matching `superseded by` on X (and the same part, for partial supersession), and vice versa; *Status* is `superseded` exactly when the record is wholly superseded; every referenced record exists.
 5. *Current decisions is current*: the *Current decisions* section of `docs/architecture.md` links no record whose status is `superseded` or `deprecated`.
-**Config**: decisions directory; status values, scopes, header field names and required headings (in the language the README uses); the frozen legacy list.
+**Config**: decisions directory; scopes; the frozen legacy list; and, copied word for word from `templates/decisions-README.md` as written into the repo: the status values from its *Status and relations* table, the required headings from its *Required sections* line, the header field names and the relation keywords. When the README is translated, this configuration is translated with it.
 **Failure output**: `docs/decisions/<file>: <what is missing or which relation disagrees>`.
 **Prove it**: empty *Considered options*; drop *Confirmation* under existing constraints; use an unknown status; add a new numbered file; write `supersedes X` without touching X; mark a record linked from *Current decisions* as superseded.
 

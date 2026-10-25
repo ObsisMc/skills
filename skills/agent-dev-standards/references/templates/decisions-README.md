@@ -105,12 +105,13 @@ What it buys, what it costs, what could go wrong.
 (Append only. Records only how open items in this decision were settled.)
 ```
 
+Required sections: *Context and problem*, *Decision drivers*, *Considered options*, *Decision outcome*, *Consequences*, *More information* (with a non-empty *Revisit when*). *Confirmation* is required whenever *Constraints* exists. *Constraints*, *Pros and cons* and *Implementation log* are optional. `verify-decision-format` checks exactly this list.
+
 How much to write:
 
 - **Decision outcome** is long enough when a reader of the outcome and constraints alone can tell whether an implementation violates the decision. Past a dozen points it usually holds implementation detail (→ module README) or two decisions (→ split). Protocol formats and other design detail go in a design doc or module README, linked from here.
 - **Constraints** are optional; when present they are numbered, and *Confirmation* says how each one is verified.
 - **Considered options** must judge each option against the drivers. Add a separate *Pros and cons* section when the options need it.
-- **Revisit when** is mandatory.
 
 Scopes: <<the scope list from the interview, e.g. domain, storage, auth, toolchain>>. A new scope is added here and in the gate's configuration in the same PR.
 
@@ -173,7 +174,7 @@ A test or verify script that confirms numbered constraint *n* of a record carrie
 ## Notes for the generator
 
 - Do not write decision records during initialization unless the survey surfaced a decision the user confirms (e.g. "we deliberately don't use an ORM"). An empty, well-formed folder with an empty generated index is the correct starting state.
-- Write the README in the language the user writes decisions in. Keep the header field names, status values, section headings and relation keywords consistent with the gate's configuration — translate them only if you translate the gate's configuration too.
+- Write the README in the language the user writes decisions in. The *Status and relations* table and the *Required sections* line are the gate's configuration source: header field names, status values, required headings and relation keywords in `verify-decision-format` must match them word for word. Translate them only together with that configuration.
 - If the repo already has decision records (`docs/adr/`, `docs/architecture/decisions/`, MADR files): keep their directory, freeze their bodies, keep their names, and migrate only their headers to the five fields — one PR with the `decision-amend` label, the old status text kept as a quoted note. Records numbered after that point use dated names. Tell the user which existing records already supersede each other and write those relations.
 - Add the *Current decisions* section to `docs/architecture.md` at the same time (`templates/architecture.md`).
 - The generated index needs markers the generator replaces between; keep them when editing the README.
