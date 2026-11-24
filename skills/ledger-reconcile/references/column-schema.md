@@ -53,6 +53,9 @@ open items without scanning the full ledger.
 On every row-level sheet (台账, 待核对 — not the 概览 summary sheet, which isn't a flat table):
 - Bold header row, frozen (`freeze_panes = 'A2'`) so it stays visible while scrolling.
 - Auto-filter enabled on the header row.
-- Alternating white/light-gray row banding (e.g. `FFFFFF` / `F2F2F2`) instead of a single
-  highlight color, even for the 待核对 sheet — rely on the sheet's filter/name to signal
-  "needs review", not a distinct fill.
+- Alternating white/light-gray row banding (e.g. `FFFFFF` / `F2F2F2`).
+- On 台账, use conditional formatting to fill every cell across the ledger columns in
+  each data row where 需核对=是 with pale yellow (e.g. `FFF2CC`). Apply the rule from the
+  first data row through the last data row. Find the 需核对 column by its header, then
+  anchor that column and leave the row relative (e.g. `$L2="是"` if the column is L).
+  The fill takes precedence over the banding and clears automatically when the flag changes.
